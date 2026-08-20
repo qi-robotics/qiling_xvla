@@ -1,0 +1,254 @@
+robot:
+  name: S4_dual_arm_o6
+  description_root: robot_description
+  urdf_source_full: robot_description/S4/urdf/S4_38dof.urdf
+  urdf_full: robot_description/S4/urdf/S4_38dof_with_palm.urdf
+  urdf_fixed_lower_body: robot_description/S4/urdf/s4_dual_arm.urdf
+  preferred_urdf_for_first_pass: robot_description/S4/urdf/S4_38dof_with_palm.urdf
+  mjcf_robot: robot_description/S4/mjcf/S4.xml
+  base_link: base_link
+  left_eef_link: LH_palm_center
+  right_eef_link: RH_palm_center
+
+startup_motion:
+  control_hz: 60
+  spread:
+    duration_hint: 3.0
+    joint_positions:
+      # left arm (7), then left hand (6)
+      - 0.00
+      - 1.20
+      - 0.00
+      - -1.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      # right arm (7), then right hand (6)
+      - 0.00
+      - -1.20
+      - 0.00
+      - -1.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+  home:
+    duration_hint: 3.0
+    joint_positions:
+      # left arm (7): wrist orientation aims the calibrated camera at the task assets.
+      - -0.80
+      - 0.60
+      - -0.30
+      - -1.20
+      - 0.22653
+      - -0.35033
+      - 0.84769
+      # left hand (6), fully open
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      # right arm (7)
+      - -0.80
+      - -0.60
+      - -0.30
+      - -1.20
+      - 0.079665
+      - -0.225637
+      - 0.824102
+      # right hand (6), fully open
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+      - 0.00
+
+left_arm:
+  joints:
+    - left_shoulder_pitch_joint
+    - left_shoulder_roll_joint
+    - left_shoulder_yaw_joint
+    - left_elbow_joint
+    - left_wrist_roll_joint
+    - left_wrist_pitch_joint
+    - left_wrist_yaw_joint
+  home_position:
+    left_shoulder_pitch_joint: -0.80
+    left_shoulder_roll_joint: 0.60
+    left_shoulder_yaw_joint: -0.30
+    left_elbow_joint: -1.20
+    left_wrist_roll_joint: 0.22653
+    left_wrist_pitch_joint: -0.35033
+    left_wrist_yaw_joint: 0.84769
+
+right_arm:
+  joints:
+    - right_shoulder_pitch_joint
+    - right_shoulder_roll_joint
+    - right_shoulder_yaw_joint
+    - right_elbow_joint
+    - right_wrist_roll_joint
+    - right_wrist_pitch_joint
+    - right_wrist_yaw_joint
+  home_position:
+    right_shoulder_pitch_joint: -0.80
+    right_shoulder_roll_joint: -0.60
+    right_shoulder_yaw_joint: -0.30
+    right_elbow_joint: -1.20
+    right_wrist_roll_joint: 0.079665
+    right_wrist_pitch_joint: -0.225637
+    right_wrist_yaw_joint: 0.824102
+
+left_o6_hand:
+  control_mode: grasp_preset
+  grasp_scalar_range: [0.0, 1.0]
+  mount_joint: LH_hand_mount
+  base_link: LH_hand_base_link
+  active_driver_joints:
+    - LH_thumb_cmc_yaw
+    - LH_thumb_cmc_pitch
+    - LH_index_mcp_pitch
+    - LH_middle_mcp_pitch
+    - LH_ring_mcp_pitch
+    - LH_pinky_mcp_pitch
+  open_preset:
+    LH_thumb_cmc_yaw: 0.0
+    LH_thumb_cmc_pitch: 0.0
+    LH_index_mcp_pitch: 0.0
+    LH_middle_mcp_pitch: 0.0
+    LH_ring_mcp_pitch: 0.0
+    LH_pinky_mcp_pitch: 0.0
+  # Preset used while descending: thumb is seated and fingers remain open enough
+  # to surround the socket without the straight distal links reaching the table.
+  approach_preset:
+    LH_thumb_cmc_yaw: 1.18000
+    LH_thumb_cmc_pitch: 0.29400
+    LH_index_mcp_pitch: 0.00
+    LH_middle_mcp_pitch: 0.00
+    LH_ring_mcp_pitch: 0.00
+    LH_pinky_mcp_pitch: 0.00
+  close_preset:
+    LH_thumb_cmc_yaw: 1.31917
+    LH_thumb_cmc_pitch: 0.19255
+    LH_index_mcp_pitch: 1.20595
+    LH_middle_mcp_pitch: 1.20595
+    LH_ring_mcp_pitch: 1.20595
+    LH_pinky_mcp_pitch: 1.20595
+  # Three-finger pinch: thumb closes between index and middle; ring/pinky stay open.
+  pinch_preset:
+    LH_thumb_cmc_yaw: 1.18000
+    LH_thumb_cmc_pitch: 0.29400
+    LH_index_mcp_pitch: 0.900000
+    LH_middle_mcp_pitch: 0.900000
+    LH_ring_mcp_pitch: 0.00
+    LH_pinky_mcp_pitch: 0.00
+
+right_o6_hand:
+  control_mode: grasp_preset
+  grasp_scalar_range: [0.0, 1.0]
+  mount_joint: RH_hand_mount
+  base_link: RH_hand_base_link
+  active_driver_joints:
+    - RH_thumb_cmc_yaw
+    - RH_thumb_cmc_pitch
+    - RH_index_mcp_pitch
+    - RH_middle_mcp_pitch
+    - RH_ring_mcp_pitch
+    - RH_pinky_mcp_pitch
+  open_preset:
+    RH_thumb_cmc_yaw: 0.0
+    RH_thumb_cmc_pitch: 0.0
+    RH_index_mcp_pitch: 0.0
+    RH_middle_mcp_pitch: 0.0
+    RH_ring_mcp_pitch: 0.0
+    RH_pinky_mcp_pitch: 0.0
+  # The thumb acts as the fixed jaw; only the index closes after descent.
+  approach_preset:
+    RH_thumb_cmc_yaw: 0.99812
+    RH_thumb_cmc_pitch: 0.32854
+    RH_index_mcp_pitch: 0.00
+    RH_middle_mcp_pitch: 0.00
+    RH_ring_mcp_pitch: 0.00
+    RH_pinky_mcp_pitch: 0.00
+  close_preset:
+    RH_thumb_cmc_yaw: 1.45
+    RH_thumb_cmc_pitch: 0.58
+    RH_index_mcp_pitch: 1.20
+    RH_middle_mcp_pitch: 1.20
+    RH_ring_mcp_pitch: 1.20
+    RH_pinky_mcp_pitch: 1.20
+  # Two-finger pinch: thumb and index close; middle/ring/pinky stay open.
+  pinch_preset:
+    RH_thumb_cmc_yaw: 0.99812
+    RH_thumb_cmc_pitch: 0.32854
+    RH_index_mcp_pitch: 0.900000
+    RH_middle_mcp_pitch: 0.000000
+    RH_ring_mcp_pitch: 0.00
+    RH_pinky_mcp_pitch: 0.00
+
+isaac_drive:
+  # The URDF importer otherwise creates stiffness-only drives (damping=0),
+  # which oscillate strongly while following the Auto-IK trajectory.
+  arm_stiffness: 1200.0
+  arm_damping: 80.0
+  hand_stiffness: 2000.0
+  hand_damping: 90.0
+  right_hand_stiffness: 1200.0
+  right_hand_damping: 70.0
+
+initial_joint_positions:
+  left_shoulder_pitch_joint: -0.80
+  left_shoulder_roll_joint: 0.60
+  left_shoulder_yaw_joint: -0.30
+  left_elbow_joint: -1.20
+  left_wrist_roll_joint: 0.22653
+  left_wrist_pitch_joint: -0.35033
+  left_wrist_yaw_joint: 0.84769
+  LH_thumb_cmc_yaw: 0.0
+  LH_thumb_cmc_pitch: 0.0
+  LH_index_mcp_pitch: 0.0
+  LH_middle_mcp_pitch: 0.0
+  LH_ring_mcp_pitch: 0.0
+  LH_pinky_mcp_pitch: 0.0
+  right_shoulder_pitch_joint: -0.80
+  right_shoulder_roll_joint: -0.60
+  right_shoulder_yaw_joint: -0.30
+  right_elbow_joint: -1.20
+  right_wrist_roll_joint: 0.079665
+  right_wrist_pitch_joint: -0.225637
+  right_wrist_yaw_joint: 0.824102
+  RH_thumb_cmc_yaw: 0.0
+  RH_thumb_cmc_pitch: 0.0
+  RH_index_mcp_pitch: 0.0
+  RH_middle_mcp_pitch: 0.0
+  RH_ring_mcp_pitch: 0.0
+  RH_pinky_mcp_pitch: 0.0
+
+controller_held_groups:
+  lower_body:
+    - left_hip_roll_joint
+    - left_hip_yaw_joint
+    - left_hip_pitch_joint
+    - left_knee_joint
+    - left_foot_pitch_joint
+    - left_foot_roll_joint
+    - right_hip_roll_joint
+    - right_hip_yaw_joint
+    - right_hip_pitch_joint
+    - right_knee_joint
+    - right_foot_pitch_joint
+    - right_foot_roll_joint

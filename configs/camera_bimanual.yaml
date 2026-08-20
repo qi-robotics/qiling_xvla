@@ -1,0 +1,46 @@
+cameras:
+  chest:
+    name: chest
+    parent_frame: base_link
+    source_mjcf: robot_description/S4/mjcf/S4.xml
+    source_body: d435_camera_link
+    source_camera: d435_camera
+    translation_m: [0.12972, 0.03250, 0.24561]
+    rotation_xyzw: [-0.579227868, 0.579227868, -0.405579927, 0.405579927]
+    convention: ros
+    fovy_deg: 58.0
+    width: 640
+    height: 480
+    fps: 20
+    visualization_depth_m: 1.0
+    visualize_frustum: false
+  left_wrist:
+    name: left_wrist
+    parent_frame: LH_hand_base_link
+    translation_m: [-0.020988, -0.074594, 0.091499]
+    rotation_xyzw: [-0.154549, 0.419213, 0.038903, 0.893791]
+    convention: ros
+    clipping_range_m: [0.005, 100.0]
+    fovy_deg: 70.0
+    width: 640
+    height: 480
+    fps: 20
+    visible_rig: true
+    visualization_depth_m: 0.70
+    visualize_frustum: false
+    note: Calibrated optical-frame extrinsic relative to LH_hand_base_link.
+  right_wrist:
+    name: right_wrist
+    parent_frame: RH_hand_base_link
+    translation_m: [-0.020988, 0.074594, 0.091499]
+    rotation_xyzw: [0.154549, 0.419213, -0.038903, 0.893791]
+    convention: ros
+    clipping_range_m: [0.005, 100.0]
+    fovy_deg: 70.0
+    width: 640
+    height: 480
+    fps: 20
+    visible_rig: true
+    visualization_depth_m: 0.70
+    visualize_frustum: false
+    note: Exact local-frame mirror of the left wrist camera extrinsic.

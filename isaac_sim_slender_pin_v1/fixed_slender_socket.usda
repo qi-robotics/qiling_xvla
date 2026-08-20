@@ -1,0 +1,113 @@
+#usda 1.0
+(
+    defaultPrim = "FixedSlenderSocket"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "FixedSlenderSocket" (
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+)
+{
+    bool physics:kinematicEnabled = 1
+    double physics:mass = 0.40
+
+    def Scope "Looks"
+    {
+        def Material "SocketMaterial"
+        {
+            token outputs:surface.connect = </FixedSlenderSocket/Looks/SocketMaterial/PreviewSurface.outputs:surface>
+            def Shader "PreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.045, 0.050, 0.060)
+                float inputs:metallic = 0.10
+                float inputs:roughness = 0.55
+                token outputs:surface
+            }
+        }
+
+        def Material "MarkerMaterial"
+        {
+            token outputs:surface.connect = </FixedSlenderSocket/Looks/MarkerMaterial/PreviewSurface.outputs:surface>
+            def Shader "PreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.98, 0.98, 0.98)
+                float inputs:roughness = 0.55
+                token outputs:surface
+            }
+        }
+    }
+
+    def Cube "Floor" (
+        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+    )
+    {
+        double size = 1
+        double3 xformOp:translate = (0, 0, 0.003)
+        double3 xformOp:scale = (0.090, 0.090, 0.006)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </FixedSlenderSocket/Looks/SocketMaterial>
+        bool physics:collisionEnabled = 1
+    }
+
+    def Cube "LeftWall" (
+        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+    )
+    {
+        double size = 1
+        double3 xformOp:translate = (-0.0305, 0, 0.028)
+        double3 xformOp:scale = (0.030, 0.090, 0.044)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </FixedSlenderSocket/Looks/SocketMaterial>
+        bool physics:collisionEnabled = 1
+    }
+
+    def Cube "RightWall" (
+        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+    )
+    {
+        double size = 1
+        double3 xformOp:translate = (0.0305, 0, 0.028)
+        double3 xformOp:scale = (0.030, 0.090, 0.044)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </FixedSlenderSocket/Looks/SocketMaterial>
+        bool physics:collisionEnabled = 1
+    }
+
+    def Cube "FrontWall" (
+        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+    )
+    {
+        double size = 1
+        double3 xformOp:translate = (0, -0.0315, 0.028)
+        double3 xformOp:scale = (0.031, 0.028, 0.044)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </FixedSlenderSocket/Looks/SocketMaterial>
+        bool physics:collisionEnabled = 1
+    }
+
+    def Cube "BackWall" (
+        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+    )
+    {
+        double size = 1
+        double3 xformOp:translate = (0, 0.0315, 0.028)
+        double3 xformOp:scale = (0.031, 0.028, 0.044)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </FixedSlenderSocket/Looks/SocketMaterial>
+        bool physics:collisionEnabled = 1
+    }
+
+    def Cube "DirectionMarker" (
+        prepend apiSchemas = ["MaterialBindingAPI"]
+    )
+    {
+        double size = 1
+        double3 xformOp:translate = (0.029, 0, 0.0507)
+        double3 xformOp:scale = (0.020, 0.004, 0.0014)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
+        rel material:binding = </FixedSlenderSocket/Looks/MarkerMaterial>
+    }
+}

@@ -1,0 +1,337 @@
+task:
+  name: slender_pin_insertion_right_arm_v1
+  language_instruction: "Use the right thumb and index finger to grasp the upright blue slender pin on the table, lift it straight up without tilting it, carry it above the fixed black socket, align the pin with the upward-facing square opening, insert it vertically into the socket, open the fingers so the pin seats fully under gravity, then return the right arm home. Keep the left arm still throughout."
+
+assets:
+  socket_box:
+    format: usd_reference
+    visual_mesh: isaac_sim_slender_pin_v1/fixed_slender_socket.usda
+    mass_kg: 0.40
+    fixed: true
+    collision_approximation: authored_open_channel_boxes
+  rj45_plug:
+    format: usd_reference
+    visual_mesh: isaac_sim_slender_pin_v1/slender_pin.usda
+    mass_kg: 0.002
+    start_kinematic: true
+    collision_approximation: authored_box
+
+simulation:
+  physics_hz: 120
+  control_hz: 60
+  record_hz: 20
+  camera_hz: 20
+  # Finger combine mode is "max", so the pin-finger pair is max(finger, object).
+  # Leaving object at 1000 would make a fingertip-only reduction a no-op.
+  # Pin-table still uses object "min" vs table 1.5 → 1.5; pin-socket stays 0.001.
+  object_static_friction: 6.0
+  object_dynamic_friction: 4.0
+  fingertip_static_friction: 6.0
+  fingertip_dynamic_friction: 4.0
+  # Object "min" lets the socket pair drop to the near-frictionless wall values
+  # below. Finger "max" still selects the (now modest) finger/object coefficient.
+  object_friction_combine_mode: min
+  # The released pin always enters the channel with a few degrees of tilt, so it
+  # descends on two opposing wall contacts. That pair self-locks unless the wall
+  # friction stays well below the wedge angle, hence the near-frictionless value.
+  socket_static_friction: 0.001
+  socket_dynamic_friction: 0.0008
+  contact_torsional_patch_radius_m: 0.004
+  contact_min_torsional_patch_radius_m: 0.002
+  object_restitution: 0.0
+  object_linear_damping: 1.0
+  object_angular_damping: 12.0
+  object_max_depenetration_velocity_m: 0.08
+  # Grasp needs the heavy damping above. After the jaws open, drop it so a
+  # slightly tilted pin can still rotate onto the channel axis instead of
+  # locking at the first two-point contact.
+  object_release_linear_damping: 0.05
+  object_release_angular_damping: 0.05
+  right_fingertip_pad_radius_m: 0.0
+  # The generic robot startup motion is deliberately conservative. This task
+  # has already been checked for table clearance, so use a shorter transition.
+  startup_motion_duration_scale: 0.34
+
+scene:
+  robot_base_world_xyz: [0.0, 0.0, 0.97]
+  robot_base_world_quat_wxyz: [1.0, 0.0, 0.0, 0.0]
+  table:
+    center_xyz: [0.50, 0.0, 1.025]
+    size_xyz: [0.72, 0.90, 0.05]
+    leg_size_xyz: [0.06, 0.06, 1.00]
+    leg_inset_xy_m: [0.05, 0.05]
+    rgba: [0.42, 0.34, 0.25, 1.0]
+    # Pin-table pair uses object combine "min", so this 1.5 is the effective
+    # base friction even if the pin material is higher. Do not raise it back.
+    static_friction: 1.5
+    dynamic_friction: 0.8
+    restitution: 0.0
+  object_surface_clearance_m: 0.001
+
+  # Fixed assembly point used by the physically validated full insertion.
+  # At X=0.419 m the strict mouth pose switches to an inward-shoulder IK
+  # branch; X=0.415 m keeps the complete descent on the reachable branch.
+  socket_box_initial_xyz: [0.415, -0.060, 1.051]
+  socket_box_initial_rotate_xyz_deg: [0.0, 0.0, 0.0]
+  socket_box_initial_quat_wxyz: [1.0, 0.0, 0.0, 0.0]
+
+  # The upright pin is in the right workspace. Its yaw is fixed.
+  # Move the nominal pin 5 mm toward base X- and 15 mm toward base Y+
+  # (closer to the body/right-arm working corridor).
+  rj45_plug_initial_xyz: [0.450, -0.160, 1.051]
+  rj45_plug_initial_rotate_xyz_deg: [0.0, 0.0, 0.0]
+  rj45_plug_initial_quat_wxyz: [1.0, 0.0, 0.0, 0.0]
+  rj45_plug_position_randomization_m:
+    x: [-0.010, 0.010]
+    y: [-0.010, 0.010]
+
+left_observation:
+  # Camera optical center is about 156 mm from the insertion corridor while
+  # preserving comfortable shoulder, elbow, and joint-limit margins.
+  # Move the observing hand about 18 mm toward base Y+ while preserving its
+  # calibrated optical orientation, so its open fingers clear the socket.
+  joint_positions: [-0.4360, 0.19876, -0.85571, -1.10817, -0.23432, -0.14069, -0.05590]
+  camera_eye_xyz_base_m: [0.41, 0.03, 0.23]
+  camera_target_xyz_base_m: [0.42, -0.10, 0.145]
+  insertion_corridor_height_m: 0.14
+
+expert_auto_ik:
+  object_size_m: [0.026, 0.030, 0.044]
+  socket_outer_size_m: [0.090, 0.090, 0.050]
+  socket_opening_size_m: [0.031, 0.035, 0.044]
+  socket_entry_local_xyz_m: [0.0, 0.0, 0.050]
+  opening_axis_local_xyz: [0.0, 0.0, 1.0]
+  plug_tip_local_xyz_m: [0.0, 0.0, 0.0]
+  plug_axis_local_xyz: [0.0, 0.0, -1.0]
+  plug_assembly_rotate_xyz_deg: [0.0, 0.0, 0.0]
+  # Keep the calibrated pinch axis horizontal. Tilting that axis increases the
+  # 44 mm tall pin's projected width and makes the fixed thumb overlap it.
+  grasp_approach_direction_base: [0.0, 0.0, 1.0]
+  intended_grasp_center_local_xyz_m: [0.0, 0.0, 0.030]
+  # Derived from the original O6 distal meshes. This maps the opposed contact
+  # line for thumb=[0.75, 0.31], index=0.64 onto base X while retaining the
+  # closest reachable palm roll from the validated tabletop pose.
+  right_grasp_rotation_matrix:
+    - [-0.428699, -0.330791, 0.840671]
+    - [0.005700, 0.929600, 0.368700]
+    - [-0.903293, 0.162893, -0.396651]
+  # Surface midpoint of the same opposed thumb/index mesh pair.
+  right_grasp_center_from_palm_m: [0.062128, 0.033094, 0.060698]
+  right_grasp_center_world_z_offset_m: 0.030
+  # PhysX-validated offset that places the thumb and index on opposing faces.
+  right_grasp_palm_x_offset_m: 0.00450
+  right_grasp_palm_y_offset_m: 0.00148
+  pregrasp_clearance_m: 0.070
+  dynamic_contact_clearance_m: 0.012
+  lift_height_m: 0.030
+  grip_center_local_z_m: 0.030
+  # 26 mm pin width minus 0.5 mm of opposing-finger preload.
+  right_pinch_target_gap_m: 0.0255
+  transport_clearance_above_socket_m: 0.055
+  preinsert_clearance_m: 0.012
+  # Depth the gripper pushes to before opening, not the final seated depth.
+  # The pin is as tall as the socket cavity and is held 30 mm above its tip, so
+  # the fingers reach the socket face at about 25 mm of insertion. Past that the
+  # commanded descent is absorbed as contact force and tilts the pin until it is
+  # squeezed out of the jaws. Release inside the clean corridor instead and let
+  # the guided 25 mm drop seat it; acceptance stays at minimum_inserted_depth_m.
+  insertion_depth_m: 0.017
+  # Use coarser collision-guided insertion steps for faster expert replay;
+  # the final insertion depth and post-release validation remain unchanged.
+  insertion_step_m: 0.0005
+  insertion_step_frames: 1
+  # These must exceed the natural spread of the mouth alignment error, which the
+  # grasp randomization already puts at 2.6-2.9 mm and 1.1-2.5 deg. At the old
+  # 0.75 mm / 0.75 deg the injection landed inside that spread, so the recovery
+  # episodes converged in the same four passes as the nominal ones and recorded
+  # no detect-and-correct behaviour at all. Sized to consume about a third of
+  # the 8 mm mouth correction budget so the loop visibly works for it.
+  # Magnitudes only. The direction is drawn per episode in the plane normal to
+  # the opening axis, so these cannot silently cancel the systematic mouth
+  # misalignment the way a fixed offset vector did.
+  lateral_recovery_offset_m: 0.0029
+  angular_recovery_offset_deg: 3.5
+  alignment_correction_passes: 8
+  mouth_alignment_correction_passes: 12
+  # A correction pass lasts well under the pin's swing period, so each pass must
+  # dwell before the next one measures. Without it the loop chases its own
+  # oscillation and diverges instead of converging.
+  alignment_settle_frames: 24
+  release_settle_chunks: 4
+  # After the index retracts, translate the palm this far along the thumb-outward
+  # direction so the remaining thumb pad is no longer welded to the pin when the
+  # thumb joint finally opens.
+  release_clear_offset_m: 0.018
+  # Physically validated socket-mouth waypoint paired with socket X=0.415 m.
+  # These two values must move together; mixing X=0.419 m with this descent
+  # was what selected the inward-shoulder IK branch.
+  mouth_alignment_clearance_m: 0.003
+  right_hand_presets:
+    # Middle/ring/pinky stay fully open throughout the complete pickup.
+    approach: [0.75, 0.31, 0.0, 0.0, 0.0, 0.0]
+    # Mesh-only closure is about 0.64 rad for the 26 mm body. The final target
+    # stays on the first closing branch and supplies moderate physical preload.
+    seat: [0.75, 0.31, 0.52, 0.0, 0.0, 0.0]
+    preload: [0.75, 0.31, 0.66, 0.0, 0.0, 0.0]
+    grasp: [0.75, 0.31, 0.78, 0.0, 0.0, 0.0]
+    # Unload the pin by fully retracting the moving index while the thumb stays
+    # put. A half-open index still traps the pin, so the later thumb sweep then
+    # tilts it into a channel wedge. Opening the index all the way gives the pin
+    # a free side before the thumb peels off.
+    release_break: [0.75, 0.31, 0.0, 0.0, 0.0, 0.0]
+  right_hand_drive:
+    # Keep the thumb as a rigid jaw; only the moving index is force limited.
+    stiffness: 1200.0
+    damping: 70.0
+    max_force: 160.0
+    joint_overrides:
+      # 8 N could slide the 2 g pin onto the thumb, but after seating the
+      # remaining MCP-arc force pivoted the pin around the thumb pad (Y tilt)
+      # the moment the table contact broke. 2 N is still far above the ~0.03 N
+      # needed to slide on the table, without that post-contact couple.
+      RH_index_mcp_pitch: {stiffness: 1000.0, damping: 60.0, max_force: 0.5}
+      RH_index_dip: {stiffness: 1000.0, damping: 60.0, max_force: 0.5}
+  two_finger_contact:
+    minimum_force_n: 0.12
+    minimum_hold_force_n: 0.020
+    stable_physics_steps: 5
+    maximum_closure_physics_steps: 150
+    # Lock at the closure command that was just validated to hold the pin, not
+    # at the loaded (lagging) measurement. Every value below is clamped by the
+    # right_grasp preset, so these only decide how much of the validated
+    # closure is retained.
+    thumb_lock_preload_rad: 0.030
+    index_lock_preload_rad: 0.100
+    coupled_lock_preload_rad: [0.056, 0.089]
+    # PhysX reports a steady-state force near 0.2 N for this contact pair no
+    # matter how far the jaw over-closes, so an unreachable lower bound turns
+    # the controller into a monotonic closing ramp that squeezes the 2 g pin
+    # out sideways. Keep the band inside the range that is actually reachable.
+    force_control_low_n: 0.15
+    force_control_high_n: 0.30
+    force_control_thumb_step_rad: 0.00020
+    force_control_index_step_rad: 0.00080
+    # Single-step zero force readings occur even while the contact separation
+    # stays negative, so only react to a sustained loss of load.
+    force_control_persistence_steps: 8
+    # The real ejection guard. Absolute joint caps sit far beyond the closure
+    # that ejects the pin, so bound the travel relative to the closure that
+    # first established bilateral contact instead.
+    force_control_max_extra_closure_rad: 0.070
+    force_control_max_thumb_yaw_rad: 0.80
+    force_control_max_thumb_pitch_rad: 0.34
+    force_control_max_index_rad: 0.82
+  solver:
+    ik_max_iters: 1800
+    waypoint_position_tolerance_m: 0.0008
+    waypoint_rotation_tolerance_rad: 0.012
+    ik_damping: 0.00001
+    ik_step_scale: 0.22
+    ik_rotation_weight: 0.55
+    # Use the previously validated multi-seed damped IK for this data pass.
+    # The nullspace implementation remains available for later comparison,
+    # but is intentionally disabled here to keep the expert trajectory stable.
+    nullspace:
+      enabled: false
+  posture:
+    # Elbow/wrist Cartesian clearance is now controlled directly in the
+    # nullspace; shoulder roll is no longer used as a redundant sign proxy.
+    min_outward_shoulder_roll_rad: 0.02
+    min_elbow_flexion_rad: 0.35
+    max_elbow_flexion_rad: 1.90
+    min_elbow_outward_y_m: 0.10
+    min_wrist_outward_y_m: 0.03
+    min_joint_margin_ratio: 0.01
+    min_jacobian_singular_value: 0.030
+    path_samples: 11
+    path_min_elbow_outward_y_m: 0.08
+    path_min_wrist_outward_y_m: 0.02
+  phase_frames:
+    home_hold: 2
+    pre_grasp: 10
+    shape_hand: 4
+    descend_to_handle: 10
+    contact_handle: 4
+    settle_contact: 4
+    close_preload: 8
+    close_grasp: 8
+    grasp_hold: 20
+    lift_breakaway: 5
+    lift_mid: 6
+    lift_handle: 4
+    lift_hold: 4
+    # The lift phases end at the force-control lower bound. Hold still here so
+    # the jaws reach a real pinch force before the 85 mm transport starts.
+    grip_preload_hold: 20
+    # The pin is picked up upright and the socket opens along +Z, so transport
+    # keeps the grasp attitude and no wrist rotation phase is needed.
+    transport_high: 26
+    transport_mid: 18
+    above_socket: 20
+    alignment_correction: 10
+    preinsert: 13
+    seat_at_socket_mouth: 9
+    mouth_alignment_correction: 8
+    recovery_inject: 8
+    descend_centered_to_mouth: 6
+    insert_hold: 8
+    release_break: 18
+    release_clear: 12
+    release_pin: 36
+    # The fall itself finishes in well under 0.3 s when the jaws are clear.
+    # Longer waits do not free a wedged pin; they only pad the episode.
+    release_settle: 36
+    retreat_from_socket: 9
+    return_home: 12
+  validation:
+    required_lift_m: 0.015
+    maximum_hold_slip_m: 0.004
+    # How far the pin may move inside the jaws across the whole transport and
+    # alignment stage before the episode is treated as a dropped grasp.
+    maximum_transport_slip_m: 0.008
+    maximum_hold_rotation_error_deg: 5.0
+    # This is only the coarse waypoint above the mouth. The tighter 1.6 mm
+    # clearance check is applied at the mouth and during insertion.
+    maximum_preinsert_lateral_error_m: 0.0050
+    # This is a free-space corridor check. Final orientation is closed-loop
+    # corrected at the socket mouth before collision-guided insertion.
+    maximum_preinsert_orientation_error_deg: 10.0
+    # Coarse preinsert only needs to reach the safe corridor; the socket-mouth
+    # stage performs the final axial centering before insertion.
+    maximum_preinsert_axial_error_m: 0.0070
+    minimum_inserted_depth_m: 0.040
+    maximum_inserted_depth_m: 0.045
+    maximum_final_lateral_error_m: 0.0036
+    maximum_final_orientation_error_deg: 8.0
+    maximum_insertion_transient_lateral_error_m: 0.0045
+    maximum_insertion_transient_orientation_error_deg: 15.0
+    # Acceptance is a physical hold, not a single sampled frame: after the free
+    # release settle the seated pose must stay inside every final tolerance for
+    # one full second at 20 Hz.
+    insertion_success_stable_frames: 20
+    alignment_correction_gain: 0.50
+    mouth_alignment_correction_gain: 0.50
+    maximum_alignment_lateral_step_m: 0.0015
+    maximum_alignment_axial_step_m: 0.0030
+    # The coarse preinsert waypoint already tolerates several millimetres of
+    # lateral residual. Keep this stage on the posture-safe vertical corridor;
+    # lateral centering is handled at the socket mouth.
+    maximum_preinsert_lateral_step_m: 0.0040
+    maximum_preinsert_total_lateral_correction_m: 0.012
+    maximum_preinsert_total_axial_correction_m: 0.015
+    maximum_mouth_lateral_step_m: 0.0010
+    maximum_mouth_axial_step_m: 0.0015
+    maximum_mouth_total_lateral_correction_m: 0.008
+    maximum_mouth_lateral_error_m: 0.0010
+    maximum_mouth_axial_error_m: 0.0010
+    maximum_mouth_orientation_error_deg: 2.5
+    # Once the pin is close enough to the opening, let the collision-guided
+    # small-step insertion finish the last fraction instead of continuing
+    # free-space corrections that can disturb a good alignment.
+    # The fallback may relax the axial and orientation checks, but not this one:
+    # accepting a wall-hugging pin here only converts a clean alignment failure
+    # into a jammed insertion.
+    coarse_mouth_lateral_error_m: 0.0010
+    coarse_mouth_axial_error_m: 0.0040
+    coarse_mouth_orientation_error_deg: 4.5
+    maximum_mouth_total_axial_correction_m: 0.015

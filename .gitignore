@@ -1,0 +1,39 @@
+# Local weights, datasets, and rollout artifacts (too large for git)
+outputs/
+datasets/
+models/
+generated/
+reports/
+
+# π0.5 / RJ45 网线（仅本机保留，不推送到 qiling_xvla）
+scripts/serve_rj45_pi05_policy.py
+scripts/run_rj45_fixed_socket_pi05_rollout.py
+scripts/run_rj45_fixed_socket_autoik_gui.py
+scripts/patch_pi05_base_for_lerobot_v050.py
+scripts/convert_fixed_socket_rj45_to_lerobot_v3_pi05.py
+scripts/record_rj45_fixed_socket_dataset_headless.py
+scripts/generate_rj45_fixed_socket_dataset.py
+scripts/validate_recorded_rj45_episode.py
+configs/task_rj45_fixed_socket_right_arm.yaml
+
+# Python / editor
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# IDE / agent metadata
+.agents/
+.codex/
+.cursor/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

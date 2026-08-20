@@ -1,0 +1,87 @@
+<mujoco model="scene_ShenNong">
+  <include file="S4.xml"/>
+
+  <statistic center="0 0 0.5" extent="2.0"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="-130" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="table_wood" rgba="0.55 0.34 0.18 1"/>
+    <material name="duck_yellow" rgba="1.0 0.82 0.05 1"/>
+    <material name="bowl_white" rgba="0.88 0.90 0.92 1"/>
+
+    <mesh name="duck_visual_mesh" file="duck/duck.stl"/>
+    <mesh name="duck_contact0_mesh" file="duck/contact0.stl"/>
+    <mesh name="duck_contact1_mesh" file="duck/contact1.stl"/>
+    <mesh name="duck_contact2_mesh" file="duck/contact2.stl"/>
+
+    <mesh name="bowl_visual_mesh" file="bowl/bowl.stl"/>
+    <mesh name="bowl_contact0_mesh" file="bowl/contact0.stl"/>
+    <mesh name="bowl_contact1_mesh" file="bowl/contact1.stl"/>
+    <mesh name="bowl_contact2_mesh" file="bowl/contact2.stl"/>
+    <mesh name="bowl_contact3_mesh" file="bowl/contact3.stl"/>
+    <mesh name="bowl_contact4_mesh" file="bowl/contact4.stl"/>
+    <mesh name="bowl_contact5_mesh" file="bowl/contact5.stl"/>
+    <mesh name="bowl_contact6_mesh" file="bowl/contact6.stl"/>
+    <mesh name="bowl_contact7_mesh" file="bowl/contact7.stl"/>
+    <mesh name="bowl_contact8_mesh" file="bowl/contact8.stl"/>
+    <mesh name="bowl_contact9_mesh" file="bowl/contact9.stl"/>
+    <mesh name="bowl_contact10_mesh" file="bowl/contact10.stl"/>
+    <mesh name="bowl_contact11_mesh" file="bowl/contact11.stl"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" group="2" solref="0.01 2.0" solimp="0.7 0.95 0.001" friction="1.0 1.0 1.0"/>
+
+    <body name="table" pos="0.5 0 1.025">
+      <geom name="table_top" type="box" size="0.32 0.4 0.025" material="table_wood"
+        friction="2.5 0.2 0.03" condim="4" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+      <geom name="table_leg_front_left" type="box" pos="0.25 0.32 -0.525" size="0.025 0.025 0.5" material="table_wood"/>
+      <geom name="table_leg_front_right" type="box" pos="0.25 -0.32 -0.525" size="0.025 0.025 0.5" material="table_wood"/>
+      <geom name="table_leg_back_left" type="box" pos="-0.25 0.32 -0.525" size="0.025 0.025 0.5" material="table_wood"/>
+      <geom name="table_leg_back_right" type="box" pos="-0.25 -0.32 -0.525" size="0.025 0.025 0.5" material="table_wood"/>
+    </body>
+
+    <body name="duck" pos="0.46 -0.15 1.098" quat="0 0 0 1">
+      <joint name="duck_freejoint" type="free" damping="0.2"/>
+      <geom name="duck_visual" type="mesh" mesh="duck_visual_mesh" material="duck_yellow" contype="0" conaffinity="0" density="0"/>
+      <geom name="duck_contact0" type="mesh" mesh="duck_contact0_mesh" rgba="1 1 0 0" group="3" density="300" friction="4.0 0.35 0.06" condim="6" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+      <geom name="duck_contact1" type="mesh" mesh="duck_contact1_mesh" rgba="1 1 0 0" group="3" density="300" friction="4.0 0.35 0.06" condim="6" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+      <geom name="duck_contact2" type="mesh" mesh="duck_contact2_mesh" rgba="1 1 0 0" group="3" density="300" friction="4.0 0.35 0.06" condim="6" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+    </body>
+
+    <body name="bowl" pos="0.46 0.02 1.088">
+      <joint name="bowl_freejoint" type="free" damping="0.2"/>
+      <geom name="bowl_visual" type="mesh" mesh="bowl_visual_mesh" material="bowl_white" contype="0" conaffinity="0" density="0"/>
+      <geom name="bowl_contact0" type="mesh" mesh="bowl_contact0_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact1" type="mesh" mesh="bowl_contact1_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact2" type="mesh" mesh="bowl_contact2_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact3" type="mesh" mesh="bowl_contact3_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact4" type="mesh" mesh="bowl_contact4_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact5" type="mesh" mesh="bowl_contact5_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact6" type="mesh" mesh="bowl_contact6_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact7" type="mesh" mesh="bowl_contact7_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact8" type="mesh" mesh="bowl_contact8_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact9" type="mesh" mesh="bowl_contact9_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact10" type="mesh" mesh="bowl_contact10_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+      <geom name="bowl_contact11" type="mesh" mesh="bowl_contact11_mesh" rgba="0.8 0.8 0.8 0" group="3" density="500" friction="2.0 0.1 0.01"/>
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key name="home"
+      qpos="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
+      0.40 -0.15 1.098 0 0 0 1 
+      0.40 0.022 1.088 1 0 0 0"
+      ctrl="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+  </keyframe>
+</mujoco>

@@ -1,0 +1,435 @@
+<mujoco model="qi_robot_dual_arm_full_fixed">
+  <compiler angle="radian" meshdir="../meshes/"/>
+
+  <!-- 参考 Unitree G1 的 visual/collision 分层：visual_skin 仅用于外观“皮肤”，不参与碰撞。 -->
+  <default>
+    <!-- Physical collision geoms default to moderately high friction for grasping. -->
+    <geom friction="2.5 0.2 0.03" condim="4" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+    <default class="visual_skin">
+      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" material="s4_metal"/>
+    </default>
+    <default class="collision">
+      <geom material="s4_metal" friction="2.5 0.2 0.03" condim="4" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+    </default>
+    <!-- Hand-only contact tuning: keep arm/body friction unchanged. -->
+    <default class="hand_collision">
+      <geom friction="3.2 0.25 0.04" condim="4" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+    </default>
+  </default>
+
+  <asset>
+    <material name="s4_black" rgba="0.2 0.2 0.2 1"/>
+    <material name="s4_metal" rgba="0.7 0.7 0.7 1"/>
+    <material name="hand_orange" rgba="1 0.6 0 1"/>
+    <material name="hand_dark_blue" rgba="0.164706 0.282353 0.443137 1"/>
+    <material name="hand_skin" rgba="0.980392 0.780392 0.627451 1"/>
+    <material name="hand_gray" rgba="0.792157 0.792157 0.792157 1"/>
+    <mesh name="base_link" file="base_link.obj"/>
+    <mesh name="left_hip_roll_link" file="left_hip_roll_link.STL"/>
+    <mesh name="left_hip_yaw_link" file="left_hip_yaw_link.STL"/>
+    <mesh name="left_hip_pitch_link" file="left_hip_pitch_link.STL"/>
+    <mesh name="left_knee_link" file="left_knee_link.STL"/>
+    <mesh name="left_foot_pitch_link" file="left_foot_pitch_link.STL"/>
+    <mesh name="left_foot_roll_link" file="left_foot_roll_link.STL"/>
+    <mesh name="right_hip_roll_link" file="right_hip_roll_link.STL"/>
+    <mesh name="right_hip_yaw_link" file="right_hip_yaw_link.STL"/>
+    <mesh name="right_hip_pitch_link" file="right_hip_pitch_link.STL"/>
+    <mesh name="right_knee_link" file="right_knee_link.STL"/>
+    <mesh name="right_foot_pitch_link" file="right_foot_pitch_link.STL"/>
+    <mesh name="right_foot_roll_link" file="right_foot_roll_link.STL"/>
+    <mesh name="left_shoulder_pitch_link" file="left_shoulder_pitch_link.STL"/>
+    <mesh name="left_shoulder_roll_link" file="left_shoulder_roll_link.STL"/>
+    <mesh name="left_shoulder_yaw_link" file="left_shoulder_yaw_link.STL"/>
+    <mesh name="left_elbow_link" file="left_elbow_link.STL"/>
+    <mesh name="left_wrist_roll_link" file="left_wrist_roll_link.STL"/>
+    <mesh name="left_wrist_pitch_link" file="left_wrist_pitch_link.STL"/>
+    <mesh name="left_wrist_yaw_link" file="left_wrist_yaw_link.STL"/>
+    <mesh name="right_shoulder_pitch_link" file="right_shoulder_pitch_link.STL"/>
+    <mesh name="right_shoulder_roll_link" file="right_shoulder_roll_link.STL"/>
+    <mesh name="right_shoulder_yaw_link" file="right_shoulder_yaw_link.STL"/>
+    <mesh name="right_elbow_link" file="right_elbow_link.STL"/>
+    <mesh name="right_wrist_roll_link" file="right_wrist_roll_link.STL"/>
+    <mesh name="right_wrist_pitch_link" file="right_wrist_pitch_link.STL"/>
+    <mesh name="right_wrist_yaw_link" file="right_wrist_yaw_link.STL"/>
+    <mesh name="LH_hand_base_link" file="../meshes/o6/left/meshes/hand_base_link.STL"/>
+    <mesh name="LH_thumb_metacarpals_base2" file="../meshes/o6/left/meshes/thumb_metacarpals_base2.STL"/>
+    <mesh name="LH_thumb_metacarpals" file="../meshes/o6/left/meshes/thumb_metacarpals.STL"/>
+    <mesh name="LH_thumb_distal" file="../meshes/o6/left/meshes/thumb_distal.STL"/>
+    <mesh name="LH_index_proximal" file="../meshes/o6/left/meshes/index_proximal.STL"/>
+    <mesh name="LH_index_distal" file="../meshes/o6/left/meshes/index_distal.STL"/>
+    <mesh name="LH_middle_proximal" file="../meshes/o6/left/meshes/middle_proximal.STL"/>
+    <mesh name="LH_middle_distal" file="../meshes/o6/left/meshes/middle_distal.STL"/>
+    <mesh name="LH_ring_proximal" file="../meshes/o6/left/meshes/ring_proximal.STL"/>
+    <mesh name="LH_ring_distal" file="../meshes/o6/left/meshes/ring_distal.STL"/>
+    <mesh name="LH_pinky_proximal" file="../meshes/o6/left/meshes/pinky_proximal.STL"/>
+    <mesh name="LH_pinky_distal" file="../meshes/o6/left/meshes/pinky_distal.STL"/>
+    <mesh name="RH_hand_base_link" file="../meshes/o6/right/meshes/hand_base_link.STL"/>
+    <mesh name="RH_thumb_metacarpals_base2" file="../meshes/o6/right/meshes/thumb_metacarpals_base2.STL"/>
+    <mesh name="RH_thumb_metacarpals" file="../meshes/o6/right/meshes/thumb_metacarpals.STL"/>
+    <mesh name="RH_thumb_distal" file="../meshes/o6/right/meshes/thumb_distal.STL"/>
+    <mesh name="RH_index_proximal" file="../meshes/o6/right/meshes/index_proximal.STL"/>
+    <mesh name="RH_index_distal" file="../meshes/o6/right/meshes/index_distal.STL"/>
+    <mesh name="RH_middle_proximal" file="../meshes/o6/right/meshes/middle_proximal.STL"/>
+    <mesh name="RH_middle_distal" file="../meshes/o6/right/meshes/middle_distal.STL"/>
+    <mesh name="RH_ring_proximal" file="../meshes/o6/right/meshes/ring_proximal.STL"/>
+    <mesh name="RH_ring_distal" file="../meshes/o6/right/meshes/ring_distal.STL"/>
+    <mesh name="RH_pinky_proximal" file="../meshes/o6/right/meshes/pinky_proximal.STL"/>
+    <mesh name="RH_pinky_distal" file="../meshes/o6/right/meshes/pinky_distal.STL"/>
+  </asset>
+
+  <worldbody>
+    <body name="base_link" pos="0 0 0.97">
+      <inertial pos="0.019499 7e-05 0.21975" mass="18.681" diaginertia="0.88961 0.82424 0.24073"/>
+    <site name="imu_site" pos="0 0 0" size="0.01" rgba="0 1 0 1"/>
+    <body name="d435_camera_link" pos="0.12972 0.03250 0.24561" quat="0.405579927 -0.579227868 0.579227868 -0.405579927">
+      <site name="d435_camera_site" pos="0 0 0" size="0.015" rgba="0 0.4 1 1"/>
+      <camera name="d435_camera" pos="0 0 0" quat="0 1 0 0" fovy="58"/>
+    </body>
+    <geom class="visual_skin" material="s4_metal" mesh="base_link"/>
+    <geom type="mesh" material="s4_metal" mesh="base_link"/>
+    <geom pos="-0.0783 0.12 -0.057" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="left_hip_roll_link"/>
+    <geom size="0.05 0.05 0.04" pos="-0.0783 0.12 -0.057" type="box" material="s4_metal"/>
+    <geom pos="0.0067 0.12 -0.07" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="left_hip_yaw_link"/>
+    <geom size="0.05 0.05 0.04" pos="0.0067 0.12 -0.07" type="box" material="s4_metal"/>
+    <geom pos="0.0067 0.0843 -0.1913" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="left_hip_pitch_link"/>
+    <geom size="0.05 0.05 0.04" pos="0.0067 0.0843 -0.1913" type="box" material="s4_metal"/>
+    <geom pos="0.046639 0.095 -0.54281" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="left_knee_link"/>
+    <geom size="0.04 0.04 0.05" pos="0.046639 0.095 -0.54281" type="box" material="s4_metal"/>
+    <geom pos="0.034409 0.1145 -0.90917" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="left_foot_pitch_link"/>
+    <geom size="0.075 0.04 0.02" pos="0.034409 0.1145 -0.90917" type="box" material="s4_metal"/>
+    <geom pos="0.034409 0.1145 -0.90917" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="left_foot_roll_link"/>
+    <geom size="0.075 0.04 0.02" pos="0.034409 0.1145 -0.90917" type="box" material="s4_metal"/>
+    <geom pos="-0.0783 -0.12 -0.057" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="right_hip_roll_link"/>
+    <geom size="0.05 0.05 0.04" pos="-0.0783 -0.12 -0.057" type="box" material="s4_metal"/>
+    <geom pos="0.0067 -0.12 -0.07" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="right_hip_yaw_link"/>
+    <geom size="0.05 0.05 0.04" pos="0.0067 -0.12 -0.07" type="box" material="s4_metal"/>
+    <geom pos="0.0067 -0.0843 -0.1913" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="right_hip_pitch_link"/>
+    <geom size="0.05 0.05 0.04" pos="0.0067 -0.0843 -0.1913" type="box" material="s4_metal"/>
+    <geom pos="0.046639 -0.095 -0.54281" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="right_knee_link"/>
+    <geom size="0.04 0.04 0.05" pos="0.046639 -0.095 -0.54281" type="box" material="s4_metal"/>
+    <geom pos="0.034409 -0.1145 -0.90917" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="right_foot_pitch_link"/>
+    <geom size="0.075 0.04 0.02" pos="0.034409 -0.1145 -0.90917" type="box" material="s4_metal"/>
+    <geom pos="0.034409 -0.1145 -0.90917" quat="1 0 0 0" class="visual_skin" material="s4_metal" mesh="right_foot_roll_link"/>
+    <geom size="0.075 0.04 0.02" pos="0.034409 -0.1145 -0.90917" type="box" material="s4_metal"/>
+    <body name="left_shoulder_pitch_link" pos="0 0.157 0.455">
+      <inertial pos="-0.001313 0.064738 0.002044" quat="0.521944 0.852781 -0.0176886 -0.00503354" mass="1.5664" diaginertia="0.00244864 0.00211962 0.00185574"/>
+      <joint name="left_shoulder_pitch_joint" pos="0 0 0" axis="0 1 0" range="-2.87 1.83" actuatorfrcrange="-120 120" damping="4" armature="0.02"/>
+      <geom class="visual_skin" material="s4_metal" mesh="left_shoulder_pitch_link"/>
+      <geom type="mesh" material="s4_metal" mesh="left_shoulder_pitch_link"/>
+      <body name="left_shoulder_roll_link" pos="0.0325 0.0695 0">
+        <inertial pos="-0.031606 0.0008426 -0.098855" quat="0.706968 -0.047331 -0.0848772 0.700537" mass="1.5055" diaginertia="0.00475226 0.00429066 0.00358008"/>
+        <joint name="left_shoulder_roll_joint" pos="0 0 0" axis="1 0 0" range="-1.57 2.356" actuatorfrcrange="-66 66" damping="4" armature="0.02"/>
+        <geom class="visual_skin" material="s4_metal" mesh="left_shoulder_roll_link"/>
+        <geom type="mesh" material="s4_metal" mesh="left_shoulder_roll_link"/>
+        <body name="left_shoulder_yaw_link" pos="-0.0325 0 -0.1555">
+          <inertial pos="-0.00085033 -0.000308 -0.076603" quat="0.705269 0.00550513 0.00302114 0.708912" mass="1.7895" diaginertia="0.00499004 0.00477338 0.00212158"/>
+          <joint name="left_shoulder_yaw_joint" pos="0 0 0" axis="0 0 1" range="-2.094 2.094" actuatorfrcrange="-66 66" damping="3" armature="0.02"/>
+          <geom class="visual_skin" material="s4_metal" mesh="left_shoulder_yaw_link"/>
+          <geom type="mesh" material="s4_metal" mesh="left_shoulder_yaw_link"/>
+          <body name="left_elbow_link" pos="0 0.0325 -0.099">
+            <inertial pos="-0.00046083 -0.023785 -0.076822" quat="0.65214 0.172044 -0.181137 0.715754" mass="0.6729" diaginertia="0.00132644 0.00125852 0.000570041"/>
+            <joint name="left_elbow_joint" pos="0 0 0" axis="0 1 0" range="-2.007 1.57" actuatorfrcrange="-66 66" damping="3" armature="0.015"/>
+            <geom class="visual_skin" material="s4_metal" mesh="left_elbow_link"/>
+            <geom type="mesh" material="s4_metal" mesh="left_elbow_link"/>
+            <body name="left_wrist_roll_link" pos="0 -0.03257 -0.11361">
+              <inertial pos="-0.00021437 -0.0053109 -0.022153" quat="0.536911 0.460137 -0.460137 0.536911" mass="0.21491" diaginertia="0.000276098 0.000269 0.000143902"/>
+              <joint name="left_wrist_roll_joint" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57" actuatorfrcrange="-18 18" damping="1" armature="0.005"/>
+              <geom class="visual_skin" material="s4_metal" mesh="left_wrist_roll_link"/>
+              <geom type="mesh" material="s4_metal" mesh="left_wrist_roll_link"/>
+              <body name="left_wrist_pitch_link" pos="0 0.03075 -0.052">
+                <inertial pos="0.0014887 -0.028712 -0.030327" quat="0.576128 0.044108 -0.015217 0.816027" mass="0.86023" diaginertia="0.00122064 0.00120287 0.000585493"/>
+                <joint name="left_wrist_pitch_joint" pos="0 0 0" axis="0 1 0" range="-0.785 0.785" actuatorfrcrange="-18 18" damping="1" armature="0.005"/>
+                <geom class="visual_skin" material="s4_metal" mesh="left_wrist_pitch_link"/>
+                <geom type="mesh" material="s4_metal" mesh="left_wrist_pitch_link"/>
+                <body name="left_wrist_yaw_link" pos="0.03075 -0.03075 -0.06" quat="1.32679e-06 0 0 1">
+                  <inertial pos="-0.00788307 0.00240518 -0.0829167" quat="0.751962 -0.1372 -0.175701 0.62037" mass="0.278996" diaginertia="0.0013572 0.0011701 0.000291287"/>
+                  <joint name="left_wrist_yaw_joint" pos="0 0 0" axis="1 0 0" range="-1.57 1.57" actuatorfrcrange="-18 18" damping="1" armature="0.005"/>
+                  <geom quat="1.32679e-06 0 0 1" class="visual_skin" material="s4_metal" mesh="left_wrist_yaw_link"/>
+                  <geom quat="1.32679e-06 0 0 1" type="mesh" material="s4_metal" mesh="left_wrist_yaw_link"/>
+                  <body name="LH_hand_base_link" pos="0.03 0 -0.07" quat="0 0.707107 0.707107 0" childclass="hand_collision">
+                    <geom class="visual_skin" material="hand_orange" mesh="LH_hand_base_link"/>
+                    <geom type="mesh" material="hand_orange" mesh="LH_hand_base_link"/>
+                    <body name="LH_thumb_metacarpals_base2" pos="0.011508 -0.022975 0.032794">
+                      <joint name="LH_thumb_cmc_yaw" pos="0 0 0" axis="0 0 1" range="0 1.8" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_dark_blue" mesh="LH_thumb_metacarpals_base2"/>
+                      <geom type="mesh" material="hand_dark_blue" mesh="LH_thumb_metacarpals_base2"/>
+                      <body name="LH_thumb_metacarpals" pos="0.0061649 -0.010678 -0.004891" quat="0.4192 0.472029 -0.272524 0.726079">
+                        <joint name="LH_thumb_cmc_pitch" pos="0 0 0" axis="0 1 0" range="0 0.58" actuatorfrcrange="-100 100"/>
+                        <geom class="visual_skin" material="hand_orange" mesh="LH_thumb_metacarpals"/>
+                        <geom type="mesh" material="hand_orange" mesh="LH_thumb_metacarpals"/>
+                        <body name="LH_thumb_distal" pos="0.0037776 0 0.045368">
+                          <geom class="visual_skin" material="hand_gray" mesh="LH_thumb_distal"/>
+                          <geom type="mesh" material="hand_gray" mesh="LH_thumb_distal"/>
+                        </body>
+                      </body>
+                    </body>
+                    <body name="LH_index_proximal" pos="0.0024758 -0.02419 0.098779" quat="0.999657 0.026177 0 0">
+                      <joint name="LH_index_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_skin" mesh="LH_index_proximal"/>
+                      <geom type="mesh" material="hand_skin" mesh="LH_index_proximal"/>
+                      <body name="LH_index_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="LH_index_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="LH_index_distal"/>
+                      </body>
+                    </body>
+                    <body name="LH_middle_proximal" pos="0.00052576 -0.00634 0.1027">
+                      <joint name="LH_middle_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_dark_blue" mesh="LH_middle_proximal"/>
+                      <geom type="mesh" material="hand_dark_blue" mesh="LH_middle_proximal"/>
+                      <body name="LH_middle_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="LH_middle_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="LH_middle_distal"/>
+                      </body>
+                    </body>
+                    <body name="LH_ring_proximal" pos="0.0010258 0.011135 0.098767" quat="0.999657 -0.026177 0 0">
+                      <joint name="LH_ring_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_skin" mesh="LH_ring_proximal"/>
+                      <geom type="mesh" material="hand_skin" mesh="LH_ring_proximal"/>
+                      <body name="LH_ring_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="LH_ring_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="LH_ring_distal"/>
+                      </body>
+                    </body>
+                    <body name="LH_pinky_proximal" pos="0.0024758 0.028372 0.092741" quat="0.999048 -0.0436192 0 0">
+                      <joint name="LH_pinky_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_skin" mesh="LH_pinky_proximal"/>
+                      <geom type="mesh" material="hand_skin" mesh="LH_pinky_proximal"/>
+                      <body name="LH_pinky_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="LH_pinky_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="LH_pinky_distal"/>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="right_shoulder_pitch_link" pos="0 -0.157 0.455">
+      <inertial pos="-0.001313 -0.064738 0.002044" quat="0.849237 0.527702 0.00506338 0.0173475" mass="1.5664" diaginertia="0.00244863 0.00211781 0.00184856"/>
+      <joint name="right_shoulder_pitch_joint" pos="0 0 0" axis="0 1 0" range="-2.87 1.83" actuatorfrcrange="-120 120" damping="4" armature="0.02"/>
+      <geom class="visual_skin" material="s4_metal" mesh="right_shoulder_pitch_link"/>
+      <geom type="mesh" material="s4_metal" mesh="right_shoulder_pitch_link"/>
+      <body name="right_shoulder_roll_link" pos="0.0325 -0.0695 0">
+        <inertial pos="-0.031604 -0.00077908 -0.09884" quat="0.707185 -0.0295073 -0.0130104 0.706292" mass="1.5055" diaginertia="0.00475445 0.00427889 0.00209366"/>
+        <joint name="right_shoulder_roll_joint" pos="0 0 0" axis="1 0 0" range="-2.356 1.57" actuatorfrcrange="-66 66" damping="4" armature="0.02"/>
+        <geom class="visual_skin" material="s4_metal" mesh="right_shoulder_roll_link"/>
+        <geom type="mesh" material="s4_metal" mesh="right_shoulder_roll_link"/>
+        <body name="right_shoulder_yaw_link" pos="-0.0325 -7.0536e-05 -0.1555">
+          <inertial pos="-0.00085037 0.00030788 -0.076602" quat="0.705649 0.00304407 0.00549463 0.708534" mass="1.7896" diaginertia="0.00499004 0.00477338 0.00212158"/>
+          <joint name="right_shoulder_yaw_joint" pos="0 0 0" axis="0 0 -1" range="-2.094 2.094" actuatorfrcrange="-66 66" damping="3" armature="0.02"/>
+          <geom class="visual_skin" material="s4_metal" mesh="right_shoulder_yaw_link"/>
+          <geom type="mesh" material="s4_metal" mesh="right_shoulder_yaw_link"/>
+          <body name="right_elbow_link" pos="0 -0.0325 -0.099">
+            <inertial pos="-0.00034837 0.023766 -0.076801" quat="0.717278 -0.182442 0.171041 0.650363" mass="0.67328" diaginertia="0.00132675 0.00125842 0.000570831"/>
+            <joint name="right_elbow_joint" pos="0 0 0" axis="0 1 0" range="-2.007 1.57" actuatorfrcrange="-66 66" damping="3" armature="0.015"/>
+            <geom class="visual_skin" material="s4_metal" mesh="right_elbow_link"/>
+            <geom type="mesh" material="s4_metal" mesh="right_elbow_link"/>
+            <body name="right_wrist_roll_link" pos="0 0.03257 -0.11361">
+              <inertial pos="0.00021437 0.0053109 -0.022153" quat="0.460137 0.536911 -0.536911 0.460137" mass="0.21491" diaginertia="0.000276098 0.000269 0.000143902"/>
+              <joint name="right_wrist_roll_joint" pos="0 0 0" axis="0 0 -1" range="-1.57 1.57" actuatorfrcrange="-18 18" damping="1" armature="0.005"/>
+              <geom class="visual_skin" material="s4_metal" mesh="right_wrist_roll_link"/>
+              <geom type="mesh" material="s4_metal" mesh="right_wrist_roll_link"/>
+              <body name="right_wrist_pitch_link" pos="0 -0.03075 -0.052">
+                <inertial pos="0.0014562 0.028665 -0.030799" quat="0.313371 0.329156 -0.644046 0.615353" mass="0.86" diaginertia="0.00124391 0.00117845 0.000119133"/>
+                <joint name="right_wrist_pitch_joint" pos="0 0 0" axis="0 1 0" range="-0.785 0.785" actuatorfrcrange="-18 18" damping="1" armature="0.005"/>
+                <geom class="visual_skin" material="s4_metal" mesh="right_wrist_pitch_link"/>
+                <geom type="mesh" material="s4_metal" mesh="right_wrist_pitch_link"/>
+                <body name="right_wrist_yaw_link" pos="0.03075 0.03075 -0.06">
+                  <inertial pos="-0.0231259 0.00241337 -0.0829183" quat="0.629889 -0.00622635 -0.0251119 0.776254" mass="0.279096" diaginertia="0.00122843 0.00100057 0.000325406"/>
+                  <joint name="right_wrist_yaw_joint" pos="0 0 0" axis="1 0 0" range="-1.57 1.57" actuatorfrcrange="-18 18" damping="1" armature="0.005"/>
+                  <geom class="visual_skin" material="s4_metal" mesh="right_wrist_yaw_link"/>
+                  <geom type="mesh" material="s4_metal" mesh="right_wrist_yaw_link"/>
+                  <body name="RH_hand_base_link" pos="-0.03 0 -0.07" quat="0 0.707107 0.707107 0" childclass="hand_collision">
+                    <geom class="visual_skin" material="hand_orange" mesh="RH_hand_base_link"/>
+                    <geom type="mesh" material="hand_orange" mesh="RH_hand_base_link"/>
+                    <body name="RH_thumb_metacarpals_base2" pos="0.011508 0.022975 0.032794">
+                      <joint name="RH_thumb_cmc_yaw" pos="0 0 0" axis="0 0 -1" range="0 1.8" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_dark_blue" mesh="RH_thumb_metacarpals_base2"/>
+                      <geom type="mesh" material="hand_dark_blue" mesh="RH_thumb_metacarpals_base2"/>
+                      <body name="RH_thumb_metacarpals" pos="0.0061649 0.010678 -0.004891" quat="0.4192 -0.472029 -0.272524 -0.726079">
+                        <joint name="RH_thumb_cmc_pitch" pos="0 0 0" axis="0 1 0" range="0 0.58" actuatorfrcrange="-100 100"/>
+                        <geom class="visual_skin" material="hand_orange" mesh="RH_thumb_metacarpals"/>
+                        <geom type="mesh" material="hand_orange" mesh="RH_thumb_metacarpals"/>
+                        <body name="RH_thumb_distal" pos="0.0037776 0 0.045368">
+                          <geom class="visual_skin" material="hand_gray" mesh="RH_thumb_distal"/>
+                          <geom type="mesh" material="hand_gray" mesh="RH_thumb_distal"/>
+                        </body>
+                      </body>
+                    </body>
+                    <body name="RH_index_proximal" pos="0.0024758 0.02419 0.098779" quat="0.999657 -0.026177 0 0">
+                      <joint name="RH_index_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_skin" mesh="RH_index_proximal"/>
+                      <geom type="mesh" material="hand_skin" mesh="RH_index_proximal"/>
+                      <body name="RH_index_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="RH_index_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="RH_index_distal"/>
+                      </body>
+                    </body>
+                    <body name="RH_middle_proximal" pos="0.00052576 0.00634 0.1027">
+                      <joint name="RH_middle_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_dark_blue" mesh="RH_middle_proximal"/>
+                      <geom type="mesh" material="hand_dark_blue" mesh="RH_middle_proximal"/>
+                      <body name="RH_middle_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="RH_middle_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="RH_middle_distal"/>
+                      </body>
+                    </body>
+                    <body name="RH_ring_proximal" pos="0.0010258 -0.011135 0.098767" quat="0.999657 0.026177 0 0">
+                      <joint name="RH_ring_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_skin" mesh="RH_ring_proximal"/>
+                      <geom type="mesh" material="hand_skin" mesh="RH_ring_proximal"/>
+                      <body name="RH_ring_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="RH_ring_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="RH_ring_distal"/>
+                      </body>
+                    </body>
+                    <body name="RH_pinky_proximal" pos="0.0024758 -0.028372 0.092741" quat="0.999048 0.0436192 0 0">
+                      <joint name="RH_pinky_mcp_pitch" pos="0 0 0" axis="0 1 0" range="0 1.6" actuatorfrcrange="-100 100"/>
+                      <geom class="visual_skin" material="hand_skin" mesh="RH_pinky_proximal"/>
+                      <geom type="mesh" material="hand_skin" mesh="RH_pinky_proximal"/>
+                      <body name="RH_pinky_distal" pos="-0.0052516 0 0.036625">
+                        <geom class="visual_skin" material="hand_dark_blue" mesh="RH_pinky_distal"/>
+                        <geom type="mesh" material="hand_dark_blue" mesh="RH_pinky_distal"/>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    </body>
+  </worldbody>
+
+  <!--
+    Adjacent shoulder shells overlap around their revolute mounting interfaces.
+    Ignore only these parent-child shell contacts; all non-adjacent self-collision
+    and all robot/environment contacts remain enabled.
+  -->
+  <contact>
+    <exclude body1="base_link" body2="left_shoulder_pitch_link"/>
+    <exclude body1="base_link" body2="right_shoulder_pitch_link"/>
+  </contact>
+
+  <actuator>
+    <motor name="left_shoulder_pitch_motor" joint="left_shoulder_pitch_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120"/>
+    <motor name="left_shoulder_roll_motor" joint="left_shoulder_roll_joint" gear="1" ctrllimited="true" ctrlrange="-66 66" forcelimited="true" forcerange="-66 66"/>
+    <motor name="left_shoulder_yaw_motor" joint="left_shoulder_yaw_joint" gear="1" ctrllimited="true" ctrlrange="-66 66" forcelimited="true" forcerange="-66 66"/>
+    <motor name="left_elbow_motor" joint="left_elbow_joint" gear="1" ctrllimited="true" ctrlrange="-66 66" forcelimited="true" forcerange="-66 66"/>
+    <motor name="left_wrist_roll_motor" joint="left_wrist_roll_joint" gear="1" ctrllimited="true" ctrlrange="-18 18" forcelimited="true" forcerange="-18 18"/>
+    <motor name="left_wrist_pitch_motor" joint="left_wrist_pitch_joint" gear="1" ctrllimited="true" ctrlrange="-18 18" forcelimited="true" forcerange="-18 18"/>
+    <motor name="left_wrist_yaw_motor" joint="left_wrist_yaw_joint" gear="1" ctrllimited="true" ctrlrange="-18 18" forcelimited="true" forcerange="-18 18"/>
+    <position name="LH_thumb_cmc_yaw_ctrl" joint="LH_thumb_cmc_yaw" gear="0.555555556" kp="65" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="LH_thumb_cmc_pitch_ctrl" joint="LH_thumb_cmc_pitch" gear="1.724137931" kp="12" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="LH_index_mcp_pitch_ctrl" joint="LH_index_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="LH_middle_mcp_pitch_ctrl" joint="LH_middle_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="LH_ring_mcp_pitch_ctrl" joint="LH_ring_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="LH_pinky_mcp_pitch_ctrl" joint="LH_pinky_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <motor name="right_shoulder_pitch_motor" joint="right_shoulder_pitch_joint" gear="1" ctrllimited="true" ctrlrange="-120 120" forcelimited="true" forcerange="-120 120"/>
+    <motor name="right_shoulder_roll_motor" joint="right_shoulder_roll_joint" gear="1" ctrllimited="true" ctrlrange="-66 66" forcelimited="true" forcerange="-66 66"/>
+    <motor name="right_shoulder_yaw_motor" joint="right_shoulder_yaw_joint" gear="1" ctrllimited="true" ctrlrange="-66 66" forcelimited="true" forcerange="-66 66"/>
+    <motor name="right_elbow_motor" joint="right_elbow_joint" gear="1" ctrllimited="true" ctrlrange="-66 66" forcelimited="true" forcerange="-66 66"/>
+    <motor name="right_wrist_roll_motor" joint="right_wrist_roll_joint" gear="1" ctrllimited="true" ctrlrange="-18 18" forcelimited="true" forcerange="-18 18"/>
+    <motor name="right_wrist_pitch_motor" joint="right_wrist_pitch_joint" gear="1" ctrllimited="true" ctrlrange="-18 18" forcelimited="true" forcerange="-18 18"/>
+    <motor name="right_wrist_yaw_motor" joint="right_wrist_yaw_joint" gear="1" ctrllimited="true" ctrlrange="-18 18" forcelimited="true" forcerange="-18 18"/>
+    <position name="RH_thumb_cmc_yaw_ctrl" joint="RH_thumb_cmc_yaw" gear="0.555555556" kp="65" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="RH_thumb_cmc_pitch_ctrl" joint="RH_thumb_cmc_pitch" gear="1.724137931" kp="12" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="RH_index_mcp_pitch_ctrl" joint="RH_index_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="RH_middle_mcp_pitch_ctrl" joint="RH_middle_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="RH_ring_mcp_pitch_ctrl" joint="RH_ring_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+    <position name="RH_pinky_mcp_pitch_ctrl" joint="RH_pinky_mcp_pitch" gear="0.625" kp="51" ctrllimited="true" ctrlrange="0 1" forcelimited="true" forcerange="-100 100"/>
+  </actuator>
+
+  <sensor>
+    <jointpos name="left_shoulder_pitch_joint_pos" joint="left_shoulder_pitch_joint"/>
+    <jointpos name="left_shoulder_roll_joint_pos" joint="left_shoulder_roll_joint"/>
+    <jointpos name="left_shoulder_yaw_joint_pos" joint="left_shoulder_yaw_joint"/>
+    <jointpos name="left_elbow_joint_pos" joint="left_elbow_joint"/>
+    <jointpos name="left_wrist_roll_joint_pos" joint="left_wrist_roll_joint"/>
+    <jointpos name="left_wrist_pitch_joint_pos" joint="left_wrist_pitch_joint"/>
+    <jointpos name="left_wrist_yaw_joint_pos" joint="left_wrist_yaw_joint"/>
+    <jointpos name="LH_thumb_cmc_yaw_pos" joint="LH_thumb_cmc_yaw"/>
+    <jointpos name="LH_thumb_cmc_pitch_pos" joint="LH_thumb_cmc_pitch"/>
+    <jointpos name="LH_index_mcp_pitch_pos" joint="LH_index_mcp_pitch"/>
+    <jointpos name="LH_middle_mcp_pitch_pos" joint="LH_middle_mcp_pitch"/>
+    <jointpos name="LH_ring_mcp_pitch_pos" joint="LH_ring_mcp_pitch"/>
+    <jointpos name="LH_pinky_mcp_pitch_pos" joint="LH_pinky_mcp_pitch"/>
+    <jointpos name="right_shoulder_pitch_joint_pos" joint="right_shoulder_pitch_joint"/>
+    <jointpos name="right_shoulder_roll_joint_pos" joint="right_shoulder_roll_joint"/>
+    <jointpos name="right_shoulder_yaw_joint_pos" joint="right_shoulder_yaw_joint"/>
+    <jointpos name="right_elbow_joint_pos" joint="right_elbow_joint"/>
+    <jointpos name="right_wrist_roll_joint_pos" joint="right_wrist_roll_joint"/>
+    <jointpos name="right_wrist_pitch_joint_pos" joint="right_wrist_pitch_joint"/>
+    <jointpos name="right_wrist_yaw_joint_pos" joint="right_wrist_yaw_joint"/>
+    <jointpos name="RH_thumb_cmc_yaw_pos" joint="RH_thumb_cmc_yaw"/>
+    <jointpos name="RH_thumb_cmc_pitch_pos" joint="RH_thumb_cmc_pitch"/>
+    <jointpos name="RH_index_mcp_pitch_pos" joint="RH_index_mcp_pitch"/>
+    <jointpos name="RH_middle_mcp_pitch_pos" joint="RH_middle_mcp_pitch"/>
+    <jointpos name="RH_ring_mcp_pitch_pos" joint="RH_ring_mcp_pitch"/>
+    <jointpos name="RH_pinky_mcp_pitch_pos" joint="RH_pinky_mcp_pitch"/>
+
+    <jointvel name="left_shoulder_pitch_joint_vel" joint="left_shoulder_pitch_joint"/>
+    <jointvel name="left_shoulder_roll_joint_vel" joint="left_shoulder_roll_joint"/>
+    <jointvel name="left_shoulder_yaw_joint_vel" joint="left_shoulder_yaw_joint"/>
+    <jointvel name="left_elbow_joint_vel" joint="left_elbow_joint"/>
+    <jointvel name="left_wrist_roll_joint_vel" joint="left_wrist_roll_joint"/>
+    <jointvel name="left_wrist_pitch_joint_vel" joint="left_wrist_pitch_joint"/>
+    <jointvel name="left_wrist_yaw_joint_vel" joint="left_wrist_yaw_joint"/>
+    <jointvel name="LH_thumb_cmc_yaw_vel" joint="LH_thumb_cmc_yaw"/>
+    <jointvel name="LH_thumb_cmc_pitch_vel" joint="LH_thumb_cmc_pitch"/>
+    <jointvel name="LH_index_mcp_pitch_vel" joint="LH_index_mcp_pitch"/>
+    <jointvel name="LH_middle_mcp_pitch_vel" joint="LH_middle_mcp_pitch"/>
+    <jointvel name="LH_ring_mcp_pitch_vel" joint="LH_ring_mcp_pitch"/>
+    <jointvel name="LH_pinky_mcp_pitch_vel" joint="LH_pinky_mcp_pitch"/>
+    <jointvel name="right_shoulder_pitch_joint_vel" joint="right_shoulder_pitch_joint"/>
+    <jointvel name="right_shoulder_roll_joint_vel" joint="right_shoulder_roll_joint"/>
+    <jointvel name="right_shoulder_yaw_joint_vel" joint="right_shoulder_yaw_joint"/>
+    <jointvel name="right_elbow_joint_vel" joint="right_elbow_joint"/>
+    <jointvel name="right_wrist_roll_joint_vel" joint="right_wrist_roll_joint"/>
+    <jointvel name="right_wrist_pitch_joint_vel" joint="right_wrist_pitch_joint"/>
+    <jointvel name="right_wrist_yaw_joint_vel" joint="right_wrist_yaw_joint"/>
+    <jointvel name="RH_thumb_cmc_yaw_vel" joint="RH_thumb_cmc_yaw"/>
+    <jointvel name="RH_thumb_cmc_pitch_vel" joint="RH_thumb_cmc_pitch"/>
+    <jointvel name="RH_index_mcp_pitch_vel" joint="RH_index_mcp_pitch"/>
+    <jointvel name="RH_middle_mcp_pitch_vel" joint="RH_middle_mcp_pitch"/>
+    <jointvel name="RH_ring_mcp_pitch_vel" joint="RH_ring_mcp_pitch"/>
+    <jointvel name="RH_pinky_mcp_pitch_vel" joint="RH_pinky_mcp_pitch"/>
+
+    <jointactuatorfrc name="left_shoulder_pitch_joint_torque" joint="left_shoulder_pitch_joint"/>
+    <jointactuatorfrc name="left_shoulder_roll_joint_torque" joint="left_shoulder_roll_joint"/>
+    <jointactuatorfrc name="left_shoulder_yaw_joint_torque" joint="left_shoulder_yaw_joint"/>
+    <jointactuatorfrc name="left_elbow_joint_torque" joint="left_elbow_joint"/>
+    <jointactuatorfrc name="left_wrist_roll_joint_torque" joint="left_wrist_roll_joint"/>
+    <jointactuatorfrc name="left_wrist_pitch_joint_torque" joint="left_wrist_pitch_joint"/>
+    <jointactuatorfrc name="left_wrist_yaw_joint_torque" joint="left_wrist_yaw_joint"/>
+    <jointactuatorfrc name="LH_thumb_cmc_yaw_torque" joint="LH_thumb_cmc_yaw"/>
+    <jointactuatorfrc name="LH_thumb_cmc_pitch_torque" joint="LH_thumb_cmc_pitch"/>
+    <jointactuatorfrc name="LH_index_mcp_pitch_torque" joint="LH_index_mcp_pitch"/>
+    <jointactuatorfrc name="LH_middle_mcp_pitch_torque" joint="LH_middle_mcp_pitch"/>
+    <jointactuatorfrc name="LH_ring_mcp_pitch_torque" joint="LH_ring_mcp_pitch"/>
+    <jointactuatorfrc name="LH_pinky_mcp_pitch_torque" joint="LH_pinky_mcp_pitch"/>
+    <jointactuatorfrc name="right_shoulder_pitch_joint_torque" joint="right_shoulder_pitch_joint"/>
+    <jointactuatorfrc name="right_shoulder_roll_joint_torque" joint="right_shoulder_roll_joint"/>
+    <jointactuatorfrc name="right_shoulder_yaw_joint_torque" joint="right_shoulder_yaw_joint"/>
+    <jointactuatorfrc name="right_elbow_joint_torque" joint="right_elbow_joint"/>
+    <jointactuatorfrc name="right_wrist_roll_joint_torque" joint="right_wrist_roll_joint"/>
+    <jointactuatorfrc name="right_wrist_pitch_joint_torque" joint="right_wrist_pitch_joint"/>
+    <jointactuatorfrc name="right_wrist_yaw_joint_torque" joint="right_wrist_yaw_joint"/>
+    <jointactuatorfrc name="RH_thumb_cmc_yaw_torque" joint="RH_thumb_cmc_yaw"/>
+    <jointactuatorfrc name="RH_thumb_cmc_pitch_torque" joint="RH_thumb_cmc_pitch"/>
+    <jointactuatorfrc name="RH_index_mcp_pitch_torque" joint="RH_index_mcp_pitch"/>
+    <jointactuatorfrc name="RH_middle_mcp_pitch_torque" joint="RH_middle_mcp_pitch"/>
+    <jointactuatorfrc name="RH_ring_mcp_pitch_torque" joint="RH_ring_mcp_pitch"/>
+    <jointactuatorfrc name="RH_pinky_mcp_pitch_torque" joint="RH_pinky_mcp_pitch"/>
+
+    <framequat name="imu_quat" objtype="body" objname="base_link"/>
+    <gyro name="imu_gyro" site="imu_site"/>
+    <accelerometer name="imu_acc" site="imu_site"/>
+  </sensor>
+
+</mujoco>
