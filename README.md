@@ -10,7 +10,9 @@ Python 包名是 `qiling_xvla`（目录 `src/qiling_xvla/`），和 GitHub 仓�
 
 闭环 rollout 示例（200k ckpt，`--seed 40`）：
 
-<video src="docs/assets/slender_pin_xvla_rollout_seed40.mp4" controls width="720"></video>
+<p align="center">
+  <img src="assets/slender_pin_xvla_rollout_seed40.gif" alt="闭环 rollout seed 40" width="480">
+</p>
 
 ---
 
@@ -22,8 +24,8 @@ Python 包名是 `qiling_xvla`（目录 `src/qiling_xvla/`），和 GitHub 仓�
 .
 ├── README.md
 ├── .gitignore
-├── docs/assets/
-│   └── slender_pin_xvla_rollout_seed40.mp4   # README 里的闭环示例录像
+├── assets/
+│   └── slender_pin_xvla_rollout_seed40.gif   # README 示例动图（200k ckpt，seed 40）
 │
 ├── configs/
 │   ├── task_slender_pin_insertion_right_arm.yaml  # 销/槽几何、摩擦、Auto-IK 相位、验收阈值
