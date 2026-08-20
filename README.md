@@ -36,13 +36,13 @@ Python 包名是 `qiling_xvla`（目录 `src/qiling_xvla/`），和 GitHub 仓�
 │   ├── generate_slender_pin_recovery_smoke.py     # 生成 raw 采集计划（seed / recovery）
 │   ├── run_slender_pin_autoik_gui.py              # GUI 采集入口（补全插入参数后转调下面那个）
 │   ├── run_handle_pin_grasp_gui.py                # 实际 Auto-IK 采集（文件名是历史遗留）
-│   ├── record_slender_pin_recovery_smoke_headless.py  # 按 manifest 无头批量录制
+│   ├── record_slender_pin_recovery_smoke_headless.py  # 按 manifest 无GUI大批量录制
 │   ├── validate_slender_pin_recovery_dataset.py   # 校验 recorded episode（维度 / 视频 / PASS）
 │   ├── convert_slender_pin_to_lerobot_v3.py       # recorded → LeRobot v3 训练集
 │   ├── convert_fixed_socket_rj45_to_lerobot_v3_common.py  # 转换公共实现，上面脚本调用它
 │   ├── serve_xvla_policy.py                       # XVLA 推理进程；由 rollout 拉起，不要手开
 │   ├── run_slender_pin_xvla_rollout.py            # 单局闭环 rollout（可 GUI / 录像）
-│   ├── batch_slender_pin_xvla_headless.py         # 无 GUI 扫 seed
+│   ├── batch_slender_pin_xvla_headless.py         # 无 GUI 批量评测不同销位
 │   ├── run_rj45_isaac_handoff_scene.py            # 共用：Isaac 建场景、物理、相机、URDF 导入
 │   └── run_rj45_fixed_socket_scene.py             # 共用：左臂观测位姿、手部 preset（采集会 import）
 │
@@ -238,7 +238,7 @@ python scripts/run_slender_pin_autoik_gui.py \
 
 `--record-out-dir` 必须是空目录。换 seed 则换目录名，例如 `episode_000001`。
 
-### 3.3 批量无头采集（推荐出训练集）
+### 3.3 无GUI大批量录制
 
 先写计划（至少 3 条；约 70% `normal`，其余为 `lateral_offset` / `angular_offset`）：
 
@@ -358,7 +358,9 @@ python scripts/run_slender_pin_xvla_rollout.py \
 
 成功 = 销进入插座（`ever_inserted` / `success`），卡住也算成功。
 
-### 6.2 无 GUI 批量测 seed
+### 6.2 无 GUI 批量评测不同销位
+
+不开窗口，按 `--seed-start` 到 `--seed-end` 依次换销的初始 XY，统计插入成功率：
 
 ```bash
 conda activate qiling_isaac
