@@ -1,0 +1,73 @@
+# Slim XVLA runtime. CUDA comes from the PyTorch wheel + host NVIDIA driver.
+# Hugging Face weights are NOT in the image; they download to ~/X-VLA/.cache via hf-mirror.
+FROM ubuntu:24.04
+
+USER root
+ARG PIP_INDEX_URL=https://pypi.org/simple
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    NVIDIA_DISABLE_REQUIRE=1 \
+    HF_HOME=/workspace/X-VLA/.cache/huggingface \
+    HUGGINGFACE_HUB_CACHE=/workspace/X-VLA/.cache/huggingface/hub \
+    TRANSFORMERS_CACHE=/workspace/X-VLA/.cache/huggingface/transformers \
+    HF_DATASETS_CACHE=/tmp/huggingface-datasets \
+    WANDB_MODE=disabled \
+    WANDB_DISABLED=true \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 \
+        python3-venv \
+        python3-dev \
+        git \
+        ffmpeg \
+        ca-certificates \
+        curl \
+        libgomp1 \
+        libglib2.0-0 \
+        libgl1 \
+        libsm6 \
+        libxext6 \
+        libxrender1 \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/venv \
+    && ln -sf /opt/venv/bin/python /usr/local/bin/python \
+    && ln -sf /opt/venv/bin/python /usr/local/bin/python3
+
+# PyTorch cu128 wheels already contain CUDA 12.8 libraries.
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir torch torchvision \
+        --index-url https://download.pytorch.org/whl/cu128
+
+RUN git clone --depth 1 --branch v0.5.0 \
+        https://github.com/huggingface/lerobot.git /tmp/lerobot \
+    && pip install --no-cache-dir -i "${PIP_INDEX_URL}" "/tmp/lerobot[xvla]" \
+        opencv-python-headless \
+        pyyaml \
+        numpy \
+    && rm -rf /tmp/lerobot \
+    && apt-get purge -y --auto-remove build-essential python3-dev git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --chown=1234:1234 . /opt/qiling_xvla
+RUN chmod +x /opt/qiling_xvla/docker/docker_sim/*.sh \
+    && python /opt/qiling_xvla/docker/docker_sim/patch_lerobot_xvla_only.py \
+    && ln -sfn docker_sim/entrypoint-xvla.sh /opt/qiling_xvla/docker/entrypoint-xvla.sh \
+    && ln -sfn docker_sim/prefetch_hf.py /opt/qiling_xvla/docker/prefetch_hf.py \
+    && ln -sfn docker_sim/prefetch_hf.sh /opt/qiling_xvla/docker/prefetch_hf.sh \
+    && ln -sfn docker_sim/patch_lerobot_xvla_only.py /opt/qiling_xvla/docker/patch_lerobot_xvla_only.py \
+    && chmod -R a+rX /opt/venv /opt/qiling_xvla \
+    && (getent group 1234 >/dev/null || groupadd -g 1234 qiling) \
+    && (getent passwd 1234 >/dev/null || useradd -u 1234 -g 1234 -M -d /opt/qiling_xvla qiling)
+
+USER 1234
+WORKDIR /opt/qiling_xvla
+ENV QILING_WORKSPACE=/workspace/X-VLA
+
+ENTRYPOINT ["/opt/qiling_xvla/docker/docker_sim/entrypoint-xvla.sh"]
+CMD ["bash"]

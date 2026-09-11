@@ -1,0 +1,42 @@
+# Thin overlay on the official Isaac Sim 5.1.0 container.
+# Customers pull nvcr.io/nvidia/isaac-sim:5.1.0 themselves; this file only
+# adds Pinocchio, a Docker CLI (for XVLA stdio IPC), and this repository.
+FROM nvcr.io/nvidia/isaac-sim:5.1.0
+
+USER root
+ENV DEBIAN_FRONTEND=noninteractive \
+    ACCEPT_EULA=Y \
+    PRIVACY_CONSENT=Y \
+    PYTHONUNBUFFERED=1
+
+ARG DOCKER_CLI_VERSION=27.5.1
+ARG PIP_INDEX_URL=https://pypi.org/simple
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL \
+        "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_CLI_VERSION}.tgz" \
+        | tar -xz -C /usr/local/bin --strip-components=1 docker/docker \
+    && chmod 755 /usr/local/bin/docker
+
+WORKDIR /isaac-sim
+# Match the working conda env: pin 2.7.0 keeps Isaac's NumPy 1.26.
+# pin 4.x pulls NumPy 2 and breaks numba / Omniverse.
+RUN ./python.sh -m pip install --no-cache-dir -i "${PIP_INDEX_URL}" 'pin==2.7.0'
+
+COPY --chown=1234:1234 . /opt/qiling_xvla
+RUN chmod +x /opt/qiling_xvla/docker/docker_sim/*.sh \
+    && ln -sfn docker_sim/entrypoint-isaac.sh /opt/qiling_xvla/docker/entrypoint-isaac.sh \
+    && ln -sfn docker_sim/xvla_policy_python.sh /opt/qiling_xvla/docker/xvla_policy_python.sh
+
+USER 1234
+WORKDIR /opt/qiling_xvla
+ENV QILING_WORKSPACE=/workspace/X-VLA \
+    XVLA_POLICY_PYTHON=/opt/qiling_xvla/docker/docker_sim/xvla_policy_python.sh \
+    NVIDIA_DRIVER_CAPABILITIES=all
+
+ENTRYPOINT ["/opt/qiling_xvla/docker/docker_sim/entrypoint-isaac.sh"]
+CMD ["bash"]

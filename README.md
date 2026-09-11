@@ -24,6 +24,14 @@ Python 包名是 `qiling_xvla`（目录 `src/qiling_xvla/`），和 GitHub 仓�
 .
 ├── README.md
 ├── .gitignore
+├── .dockerignore                             # 指向 docker/docker_sim/.dockerignore（build 上下文在仓库根）
+├── docker/                                   # 按环节分目录
+│   ├── README.md                             # 总索引
+│   ├── docker_sim/                           # 仿真客户入口与镜像配方
+│   └── docker_real/                          # 真机训练 / rollout（独立镜像）
+├── teleop/README.md                          # 遥操：指向公开仓 qiling_television（不用 Docker）
+├── maintainer/                               # 仅内部：build / push xvla 到阿里云
+│
 ├── assets/
 │   └── slender_pin_xvla_rollout_seed40.gif   # README 示例动图（200k ckpt，seed 40）
 │
@@ -36,7 +44,7 @@ Python 包名是 `qiling_xvla`（目录 `src/qiling_xvla/`），和 GitHub 仓�
 │   ├── generate_slender_pin_recovery_smoke.py     # 生成 raw 采集计划（seed / recovery）
 │   ├── run_slender_pin_autoik_gui.py              # GUI 采集入口（补全插入参数后转调下面那个）
 │   ├── run_handle_pin_grasp_gui.py                # 实际 Auto-IK 采集（文件名是历史遗留）
-│   ├── record_slender_pin_recovery_smoke_headless.py  # 按 manifest 无GUI大批量录制
+│   ├── record_slender_pin_recovery_smoke_headless.py  # 按 manifest 录制（默认无 GUI，可 --gui）
 │   ├── validate_slender_pin_recovery_dataset.py   # 校验 recorded episode（维度 / 视频 / PASS）
 │   ├── convert_slender_pin_to_lerobot_v3.py       # recorded → LeRobot v3 训练集
 │   ├── convert_fixed_socket_rj45_to_lerobot_v3_common.py  # 转换公共实现，上面脚本调用它
@@ -185,6 +193,44 @@ cd qiling_xvla
 ```
 
 SSH 需能访问 `qi-robotics` 组织。若本机用了 ssh Host 别名，把 remote 写成 `git@github-qirobotics:qi-robotics/qiling_xvla.git`。
+
+### 2.5 Docker 交付（客户）
+
+不配 conda。仿真和真机是两套目录，**不要混用**。总索引见 [docker/README.md](docker/README.md)。每条路径只按顺序跑列出的命令。
+
+**仿真**（Isaac；可选参数见 [docker/docker_sim/README.md](docker/docker_sim/README.md)）：
+
+```bash
+./docker/docker_sim/up.sh
+./docker/docker_sim/fetch_modelscope.sh
+./docker/docker_sim/rollout.sh --seed 40
+```
+
+魔搭仓 [qi-studio_embodied_edu](https://modelscope.cn/datasets/keno123/qi-studio_embodied_edu) 里还有 bottleInBowl / smolVLA 等课程资料，仿真脚本 **只拉 `xvla/`**。数据写在 `~/X-VLA`。
+
+自己在仿真里采集再训练：`./docker/docker_sim/record.sh --count 3` 然后 `./docker/docker_sim/train.sh`，不要再加 `--from-base` / `--resume`。
+
+**真机**（本机 Docker + 机器人 PC 的 SDK/相机；完整步骤见 [docker/docker_real/README.md](docker/docker_real/README.md)）：
+
+```bash
+./docker/docker_real/scripts/build.sh
+./docker/docker_real/scripts/download_models.sh all
+./docker/docker_real/scripts/start_rollout.sh
+```
+
+首次必须 `execution_mode: shadow`。权重和产物在 `docker/docker_real/{models,datasets,outputs}/`，不是 `~/X-VLA`。
+
+`./docker/docker_sim/up.sh` 会登录阿里云并拉仿真镜像；真机镜像由本机 `build.sh` 编译，不必 `docker login`。
+
+### 2.6 遥操（不用 Docker）
+
+Quest 3 双臂遥操是源码安装。仓库 [qiling_television](https://github.com/qi-robotics/qiling_television) 是组织下的 **Public** 仓，clone 不需要 GitHub 账号或组织成员。分工见 [teleop/README.md](teleop/README.md)。
+
+```bash
+git clone https://github.com/qi-robotics/qiling_television.git
+```
+
+安装和启动以该仓自己的 README 为准。
 
 ---
 

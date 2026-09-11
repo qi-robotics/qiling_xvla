@@ -1,0 +1,75 @@
+name: qiling-xvla
+
+x-gpu: &gpu
+  ipc: host
+  init: true
+  gpus: all
+  environment:
+    NVIDIA_VISIBLE_DEVICES: all
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: [gpu]
+
+services:
+  isaac:
+    <<: *gpu
+    build:
+      context: .
+      dockerfile: docker/docker_sim/Dockerfile.isaac
+      network: host
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    image: qiling-isaac:5.1.0
+    user: "1234:1234"
+    group_add:
+      - "${DOCKER_GID:?set DOCKER_GID to the host docker.sock group id}"
+    network_mode: host
+    stdin_open: true
+    working_dir: /opt/qiling_xvla
+    environment:
+      ACCEPT_EULA: "Y"
+      PRIVACY_CONSENT: "Y"
+      DISPLAY: ${DISPLAY:-}
+      XAUTHORITY: /isaac-sim/.Xauthority
+      NVIDIA_DRIVER_CAPABILITIES: all
+      NVIDIA_VISIBLE_DEVICES: all
+      QILING_WORKSPACE: /workspace/X-VLA
+      QILING_ROOT_HOST: ${QILING_ROOT:-${HOME}/X-VLA}
+      QILING_XVLA_IMAGE: ${QILING_XVLA_IMAGE:-registry.cn-hangzhou.aliyuncs.com/keno/qi-xvla:lerobot050}
+      XVLA_POLICY_PYTHON: /opt/qiling_xvla/docker/docker_sim/xvla_policy_python.sh
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+    volumes:
+      - ${QILING_ROOT:-${HOME}/X-VLA}:/workspace/X-VLA
+      - ${QILING_ROOT:-${HOME}/X-VLA}/.isaac-cache/cache/main:/isaac-sim/.cache
+      - ${QILING_ROOT:-${HOME}/X-VLA}/.isaac-cache/cache/computecache:/isaac-sim/.nv/ComputeCache
+      - ${QILING_ROOT:-${HOME}/X-VLA}/.isaac-cache/logs:/isaac-sim/.nvidia-omniverse/logs
+      - ${QILING_ROOT:-${HOME}/X-VLA}/.isaac-cache/config:/isaac-sim/.nvidia-omniverse/config
+      - ${QILING_ROOT:-${HOME}/X-VLA}/.isaac-cache/data:/isaac-sim/.local/share/ov/data
+      - ${QILING_ROOT:-${HOME}/X-VLA}/.isaac-cache/pkg:/isaac-sim/.local/share/ov/pkg
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOME}/.Xauthority:/isaac-sim/.Xauthority:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  xvla:
+    <<: *gpu
+    image: ${QILING_XVLA_IMAGE:-registry.cn-hangzhou.aliyuncs.com/keno/qi-xvla:lerobot050}
+    user: "1234:1234"
+    working_dir: /opt/qiling_xvla
+    environment:
+      QILING_WORKSPACE: /workspace/X-VLA
+      HF_HOME: /workspace/X-VLA/.cache/huggingface
+      HUGGINGFACE_HUB_CACHE: /workspace/X-VLA/.cache/huggingface/hub
+      TRANSFORMERS_CACHE: /workspace/X-VLA/.cache/huggingface/transformers
+      HF_DATASETS_CACHE: /tmp/huggingface-datasets
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      WANDB_MODE: disabled
+      WANDB_DISABLED: "true"
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DISABLE_REQUIRE: "1"
+    volumes:
+      - ${QILING_ROOT:-${HOME}/X-VLA}:/workspace/X-VLA

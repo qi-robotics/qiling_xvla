@@ -5,7 +5,7 @@ models/
 generated/
 reports/
 /08-X-VLA
-
+/maintainer
 # π0.5 / RJ45 网线（仅本机保留，不推送到 qiling_xvla）
 scripts/serve_rj45_pi05_policy.py
 scripts/run_rj45_fixed_socket_pi05_rollout.py
@@ -38,3 +38,7 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local docker env (may contain machine paths; never put ACR passwords here)
+docker/.env
+docker/**/.env

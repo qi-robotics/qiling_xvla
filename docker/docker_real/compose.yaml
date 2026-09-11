@@ -1,0 +1,92 @@
+name: qiling-release
+
+services:
+  control:
+    image: qi-reasoning:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ROS_BUILD_IMAGE: ${QI_ROS_BUILD_IMAGE:-m.daocloud.io/docker.io/library/ros:humble-ros-base-jammy}
+        ROS_RUNTIME_IMAGE: ${QI_ROS_RUNTIME_IMAGE:-m.daocloud.io/docker.io/library/ros:humble-ros-core-jammy}
+        UBUNTU_APT_MIRROR: ${QI_UBUNTU_APT_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/ubuntu}
+        ROS2_APT_MIRROR: ${QI_ROS2_APT_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu}
+        MINICONDA_URL: ${QI_MINICONDA_URL:-https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py312_25.9.1-3-Linux-x86_64.sh}
+        MINICONDA_SHA256: ${QI_MINICONDA_SHA256:-07fc00c146a481f7ae2657a31eb7ec0d5d77a107b981d58ab5d7cd8bc99be778}
+        PIP_INDEX_URL: ${QI_PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    entrypoint:
+      - /opt/qiling/container/start_control.sh
+    network_mode: host
+    ipc: host
+    init: true
+    user: ${QILING_UID:-1000}:${QILING_GID:-1000}
+    env_file:
+      - path: ./runtime/release.env
+        required: false
+    volumes:
+      - ./config:/opt/qiling/config:ro
+      - ./runtime:/opt/qiling/runtime
+    restart: "no"
+
+  worker:
+    image: qi-reasoning:local
+    network_mode: host
+    ipc: host
+    init: true
+    user: ${QILING_UID:-1000}:${QILING_GID:-1000}
+    env_file:
+      - path: ./runtime/release.env
+        required: false
+    environment:
+      HF_HOME: /opt/qiling/runtime/hf_cache
+      XDG_CACHE_HOME: /opt/qiling/runtime/cache
+    volumes:
+      - ./config:/opt/qiling/config:ro
+      - ./models:/opt/qiling/models:ro
+      - ./outputs:/opt/qiling/outputs:ro
+      - ./runtime:/opt/qiling/runtime
+    command:
+      - /opt/qi-reasoning/bin/python
+      - /opt/qiling/app/xvla_worker.py
+      - --config
+      - /opt/qiling/runtime/xvla_rollout.yaml
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: "no"
+
+  trainer:
+    image: qi-reasoning:local
+    network_mode: host
+    ipc: host
+    init: true
+    user: ${QILING_UID:-1000}:${QILING_GID:-1000}
+    env_file:
+      - path: ./runtime/release.env
+        required: false
+    environment:
+      HF_HOME: /opt/qiling/runtime/hf_cache
+      XDG_CACHE_HOME: /opt/qiling/runtime/cache
+    volumes:
+      - ./config:/opt/qiling/config:ro
+      - ./models:/opt/qiling/models:ro
+      - ./datasets:/opt/qiling/datasets:ro
+      - ./outputs:/opt/qiling/outputs
+      - ./runtime:/opt/qiling/runtime
+    command:
+      - /opt/qi-reasoning/bin/python
+      - /opt/qiling/app/run_xvla_train.py
+      - --config
+      - /opt/qiling/runtime/xvla_training.yaml
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: "no"

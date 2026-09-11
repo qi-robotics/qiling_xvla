@@ -1,0 +1,93 @@
+# 主机侧 rollout ROS2 bridge 配置。默认 shadow：绝不向真机发布命令。
+qiling_rollout_ros_bridge:
+  ros__parameters:
+    execution:
+      # shadow: 仅推理、记录候选命令；armed: 才允许发送身体和 O6 命令。
+      mode: shadow
+      command_rate_hz: 50.0
+      policy_action_rate_hz: 30.0
+      # XVLA每次输出32个30Hz future action。bridge维持12步（0.40s）执行窗口，
+      # 剩余8步（约0.267s）时提前推理；新chunk只保护最近3步旧动作，替换
+      # 更远的旧队列，并在替换边界对4步关节目标做渐进融合。
+      policy_execution_horizon_steps: 12
+      policy_prefetch_watermark_steps: 8
+      policy_protected_prefix_steps: 3
+      policy_blend_steps: 4
+      # 30Hz 下最多接受约 0.40s 旧观测对应的结果；超过时拒绝该 chunk 并保持安全状态。
+      max_inference_latency_steps: 12
+      state_timeout_sec: 0.20
+      image_timeout_sec: 0.3
+      action_timeout_sec: 0.50
+      # armed 生命周期：当前实测姿态 -> 过渡点 -> home -> rollout。调用 finish
+      # 服务后从当前姿态直接平滑回 home，再停止图像订阅、推理和命令发布。
+      finish_service: /rollout/finish
+      # 人工异常中断入口。它不会令双臂回 home，而是锁存当时实测姿态进入 ABORT_HOLD。
+      abort_service: /rollout/abort
+      # 仅从正式 ROLLOUT（双臂已到 home、worker 已启动）起计时；0 表示关闭超时保护。
+      max_rollout_duration_sec: 200.0
+      home_transition_duration_sec: 2.5
+      home_move_duration_sec: 3.0
+      home_settle_duration_sec: 0.30
+      home_settle_timeout_sec: 4.0
+      home_transition_tolerance_rad: 0.15
+      home_tolerance_rad: 0.15
+      # 双臂 home 连续稳定后，继续保持 home 的等待时间；等待结束才创建图像订阅/IPC并开始推理。
+      rollout_start_delay_sec: 10.0
+
+    topics:
+      # 真机侧rollout_image_compressor将30Hz raw图像压缩并限频到这些话题。
+      image_message_type: compressed
+      head_image: /qiling_rollout/camera_head/image/compressed
+      left_image: /qiling_rollout/camera_left/image/compressed
+      right_image: /qiling_rollout/camera_right/image/compressed
+      lower_state: /human_lower_state
+      lower_command: /human_lower_command
+      hands_command: /handscmd
+
+    # 机器人身体 26 电机排列：腿 0..11，左臂 12..18，右臂 19..25。
+    robot:
+      body_motor_count: 26
+      leg_offset: 0
+      left_arm_offset: 12
+      right_arm_offset: 19
+      left_home_rad: [0.0104905777, 0.6509880424, -0.1741435826, -1.7084382772, 0.0738155171, -0.0963225737, -0.0936522484]
+      right_home_rad: [-0.0749599487, -0.6475547552, 0.1073853672, -1.2964446545, -0.0009536889, -0.4251545072, 0.4945830405]
+      # 与 qiling_kinematics_real 已验证的避桌过渡点一致。
+      left_home_transition_rad: [1.0, 1.2, 0.0, -1.2, 0.0, 0.0, 0.0]
+      right_home_transition_rad: [1.0, -1.2, 0.0, -1.2, 0.0, 0.0, 0.0]
+      right_joint_lower_rad: [-2.87, -2.356, -2.094, -2.007, -1.57, -0.785, -1.57]
+      right_joint_upper_rad: [1.83, 1.57, 2.094, 1.57, 1.57, 0.785, 1.57]
+      joint_limit_margin_rad: 0.12
+      # 50Hz 下的最大参考角速度；首次真机 rollout 保守设置。
+      right_max_velocity_rad_s: [0.60, 0.70, 0.70, 1.00, 0.70, 0.80, 0.70]
+      # 50Hz 参考发生器的最大关节角加速度（rad/s²）。它不会改变 XVLA 输出，
+      # 仅将相邻 30Hz action 插值后平滑成连续、安全的 MIT 位置参考。
+      right_max_acceleration_rad_s2: [1.40, 1.80, 1.80, 2.40, 1.40, 2.00, 1.40]
+      command_kp: 40.0
+      command_kd: 2.0
+
+    gravity:
+      # 与现有 qiling_kinematics_real 相同：使用实测双臂关节角计算 Pinocchio 重力前馈。
+      enabled: true
+      urdf_path: /home/ub/program/qiling_television/src/qi_robot_description/urdf/s4_dual_arm.urdf
+      torque_scale: 1.0
+      torque_limit_scale: 1.0
+
+    o6:
+      enabled: true
+      # 模型第 8 维大于等于该值时为闭合；模型数据标签为 0/1。
+      close_threshold: 0.7
+      open_threshold: 0.05
+      speed: 200
+      open_position: [255, 104, 255, 255, 255, 255]
+      close_position: [101, 60, 0, 0, 0, 0]
+
+    ipc:
+      # 仅监听本机。Python 3.12 worker 通过此端口取最新观测、回传动作块。
+      host: 127.0.0.1
+      port: 29551
+      authkey: qiling_xvla_rollout_v1
+
+    logging:
+      log_directory: /home/ub/program/qiling_television/rollout/records
+      diagnostics_period_sec: 2.0

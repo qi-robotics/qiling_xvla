@@ -20,6 +20,13 @@ def resolve(value: str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
+def display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--raw-root", default="datasets/raw_slender_pin_v1")
@@ -33,6 +40,11 @@ def parse_args() -> argparse.Namespace:
         help="Record only the named episode; repeat this option to select several.",
     )
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Open the Isaac window instead of recording headless.",
+    )
     return parser.parse_args()
 
 
@@ -75,7 +87,10 @@ def main() -> int:
             sys.executable,
             "-u",
             str(ROOT / "scripts/run_handle_pin_grasp_gui.py"),
-            "--headless",
+        ]
+        if not args.gui:
+            command.append("--headless")
+        command.extend([
             "--complete-insertion",
             "--task-config", str(episode.get(
                 "task_config", "configs/task_slender_pin_insertion_right_arm.yaml"
@@ -83,7 +98,7 @@ def main() -> int:
             "--record-out-dir", str(output),
             "--recovery-type", str(episode["recovery_type"]),
             "--episode-seed", str(int(episode["seed"])),
-        ]
+        ])
         started = time.monotonic()
         with log_path.open("w", encoding="utf-8") as log:
             process = subprocess.run(
@@ -101,7 +116,7 @@ def main() -> int:
             "status": "PASS" if passed else "FAIL",
             "returncode": process.returncode,
             "wall_seconds": time.monotonic() - started,
-            "log": str(log_path.relative_to(ROOT)),
+            "log": display_path(log_path),
         }
         results.append(row)
         print(f"[slender-record] {index}/{len(episodes)} {name} {row['status']}", flush=True)
@@ -112,8 +127,8 @@ def main() -> int:
         "successful": successful,
         "failed": len(episodes) - successful,
         "success_rate": successful / float(len(episodes)),
-        "raw_root": str(raw_root.relative_to(ROOT)),
-        "recorded_root": str(recorded_root.relative_to(ROOT)),
+        "raw_root": display_path(raw_root),
+        "recorded_root": display_path(recorded_root),
         "camera_storage": "three H.264 MP4 files per episode",
         "record_hz": 20.0,
         "wall_seconds": time.monotonic() - started_all,

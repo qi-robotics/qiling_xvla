@@ -1,0 +1,183 @@
+# Qiling 训练与真机 rollout 的唯一用户配置文件。
+# 模型、数据集和训练产物均通过目录挂载，不会写入 Docker 镜像。
+version: 1
+
+deployment:
+  # 真机 SDK、相机节点、控制容器必须使用相同 ROS_DOMAIN_ID。
+  ros_domain_id: 16
+  ros_localhost_only: 0
+  rmw_implementation: rmw_cyclonedds_cpp
+  # auto 表示让 CycloneDDS 自动选择网卡；跨机器发现异常时改成实际网卡名，例如 wlp9s0。
+  dds_interface: auto
+  # shadow 只推理和记录；armed 会向真机发布命令。首次部署必须先用 shadow。
+  execution_mode: shadow
+  # topic_convertor 启动后等待真机 lowstate 的最长时间。
+  startup_state_wait_sec: 30
+
+assets:
+  # XVLA Base：用于从基础权重重新进行全量微调。
+  xvla_base:
+    repo_id: keno123/qi-studio_embodied_edu
+    repo_type: dataset
+    revision: master
+    remote_path: xvla/xvla_base
+    local_subdir: qiling_xvla_base
+
+  # 已完成训练的 200k checkpoint：默认用于真机 rollout。
+  rollout_checkpoint:
+    repo_id: keno123/qi-studio_embodied_edu
+    repo_type: dataset
+    revision: master
+    remote_path: xvla/real_200k_checkpoints
+    local_subdir: qiling_xvla_real_200k
+
+  # 后续上传 LeRobot 数据集后补充。留空时 download_dataset.sh 会明确拒绝执行。
+  dataset:
+    repo_id: ""
+    repo_type: dataset
+    revision: master
+    remote_path: ""
+    local_subdir: qiling_training_dataset
+
+training:
+  # 默认从上面的 xvla_base 重新微调。也可以填写容器内绝对路径覆盖。
+  pretrained_asset: xvla_base
+  pretrained_policy_path: ""
+  dataset:
+    # ModelScope 下载时使用该资产；自备数据可保持默认并直接放到 local_subdir。
+    asset: dataset
+    # 非空时使用容器内绝对路径并忽略 asset/local_subdir。
+    root_path: ""
+    # LeRobot 数据集的逻辑 ID，不要求上传到 Hugging Face。
+    repo_id: local/qiling_right_arm_o6
+    # 对应 assets.dataset.local_subdir；自备数据也放到 datasets/该目录下。
+    local_subdir: qiling_training_dataset
+    video_backend: pyav
+    # 将本机器人三路相机映射为 XVLA 固定的三个视觉输入。
+    rename_map:
+      observation.images.head: observation.images.image
+      observation.images.left: observation.images.image2
+      observation.images.right: observation.images.image3
+
+  xvla:
+    device: cuda
+    dtype: bfloat16
+    # 当前数据定义：右臂 7 关节 + O6 开闭，共 8 维 action。
+    action_mode: auto
+    max_action_dim: 20
+    # 30 Hz 下预测 32 步，约覆盖 1.07 秒。
+    chunk_size: 32
+    n_action_steps: 8
+    num_image_views: 3
+    empty_cameras: 0
+    # 全量微调：视觉、语言和策略主干均参与训练。
+    freeze_vision_encoder: false
+    freeze_language_encoder: false
+    train_policy_transformer: true
+    train_soft_prompts: true
+
+  run:
+    # 训练结果写入 qiling_release/outputs/<output_subdir>。
+    output_subdir: xvla_full_finetune
+    job_name: qiling_right_arm_o6_xvla_full_finetune
+    seed: 1000
+    # 显存不足时优先降低 batch_size，再降低 num_workers。
+    batch_size: 8
+    num_workers: 16
+    steps: 200000
+    log_freq: 200
+    save_freq: 40000
+    eval_freq: 50000
+    save_checkpoint: true
+    learning_rate: 0.0001
+    warmup_steps: 1000
+    decay_steps: 20000
+    decay_learning_rate: 0.0000025
+
+  logging:
+    wandb_enabled: false
+    wandb_project: qiling_xvla
+
+rollout:
+  model:
+    # 默认加载 assets.rollout_checkpoint。训练完成后可填写容器内绝对路径覆盖，
+    # 例如 /opt/qiling/outputs/xvla_full_finetune/checkpoints/200000/pretrained_model。
+    checkpoint_asset: rollout_checkpoint
+    checkpoint_path: ""
+    # 必须与训练数据中的 task 文本保持一致。
+    task: Pick up the beverage bottle from the table and place it into the bowl
+    cuda_visible_devices: "0"
+    warmup_enabled: true
+    warmup_iterations: 1
+
+  bridge:
+    execution:
+      command_rate_hz: 50.0
+      policy_action_rate_hz: 30.0
+      policy_execution_horizon_steps: 12
+      policy_prefetch_watermark_steps: 8
+      policy_protected_prefix_steps: 3
+      policy_blend_steps: 4
+      max_inference_latency_steps: 12
+      state_timeout_sec: 0.20
+      image_timeout_sec: 0.30
+      action_timeout_sec: 0.50
+      finish_service: /rollout/finish
+      abort_service: /rollout/abort
+      max_rollout_duration_sec: 200.0
+      home_transition_duration_sec: 2.5
+      home_move_duration_sec: 3.0
+      home_settle_duration_sec: 0.30
+      home_settle_timeout_sec: 4.0
+      home_transition_tolerance_rad: 0.15
+      home_tolerance_rad: 0.15
+      rollout_start_delay_sec: 10.0
+
+    topics:
+      image_message_type: compressed
+      head_image: /qiling_rollout/camera_head/image/compressed
+      left_image: /qiling_rollout/camera_left/image/compressed
+      right_image: /qiling_rollout/camera_right/image/compressed
+      lower_state: /human_lower_state
+      lower_command: /human_lower_command
+      hands_command: /handscmd
+
+    robot:
+      body_motor_count: 26
+      leg_offset: 0
+      left_arm_offset: 12
+      right_arm_offset: 19
+      left_home_rad: [0.0104905777, 0.6509880424, -0.1741435826, -1.7084382772, 0.0738155171, -0.0963225737, -0.0936522484]
+      right_home_rad: [-0.0749599487, -0.6475547552, 0.1073853672, -1.2964446545, -0.0009536889, -0.4251545072, 0.4945830405]
+      left_home_transition_rad: [1.0, 1.2, 0.0, -1.2, 0.0, 0.0, 0.0]
+      right_home_transition_rad: [1.0, -1.2, 0.0, -1.2, 0.0, 0.0, 0.0]
+      right_joint_lower_rad: [-2.87, -2.356, -2.094, -2.007, -1.57, -0.785, -1.57]
+      right_joint_upper_rad: [1.83, 1.57, 2.094, 1.57, 1.57, 0.785, 1.57]
+      joint_limit_margin_rad: 0.12
+      right_max_velocity_rad_s: [0.60, 0.70, 0.70, 1.00, 0.70, 0.80, 0.70]
+      right_max_acceleration_rad_s2: [1.40, 1.80, 1.80, 2.40, 1.40, 2.00, 1.40]
+      command_kp: 40.0
+      command_kd: 2.0
+
+    gravity:
+      enabled: true
+      torque_scale: 1.0
+      torque_limit_scale: 1.0
+
+    o6:
+      enabled: true
+      close_threshold: 0.7
+      open_threshold: 0.05
+      speed: 200
+      open_position: [255, 104, 255, 255, 255, 255]
+      close_position: [101, 60, 0, 0, 0, 0]
+
+    ipc:
+      host: 127.0.0.1
+      port: 29551
+      authkey: qiling_xvla_rollout_v1
+      retry_delay_sec: 1.0
+      not_ready_delay_sec: 0.02
+
+    logging:
+      diagnostics_period_sec: 2.0

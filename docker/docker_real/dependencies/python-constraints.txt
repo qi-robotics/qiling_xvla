@@ -1,0 +1,15 @@
+accelerate==1.14.0
+av==15.1.0
+datasets==4.8.5
+diffusers==0.35.2
+huggingface-hub==1.23.0
+modelscope==1.39.1
+modelscope-hub==0.2.0
+numpy==2.2.6
+opencv-python-headless==4.12.0.88
+safetensors==0.8.0
+tokenizers==0.22.2
+torch==2.7.0
+torchcodec==0.10.0
+torchvision==0.22.0
+transformers==5.3.0

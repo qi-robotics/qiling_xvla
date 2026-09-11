@@ -1,0 +1,14 @@
+*
+!Dockerfile
+!app/
+!app/**
+!container/
+!container/**
+!dependencies/
+!dependencies/**
+!ros_ws/
+!ros_ws/**
+!third_party/
+!third_party/**
+!tools/
+!tools/**

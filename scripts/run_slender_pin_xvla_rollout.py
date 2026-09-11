@@ -276,8 +276,13 @@ def start_policy_server(args: argparse.Namespace) -> subprocess.Popen:
     environment = os.environ.copy()
     for name in ("PYTHONPATH", "LD_LIBRARY_PATH", "LD_PRELOAD"):
         environment.pop(name, None)
-    environment["HF_HUB_OFFLINE"] = "1"
-    environment["TRANSFORMERS_OFFLINE"] = "1"
+    # Tokenizer files live in the workspace HF cache (not the image).
+    # The Docker policy wrapper sets OFFLINE after prefetch; conda users
+    # can still export HF_HUB_OFFLINE=1 themselves.
+    environment.setdefault("HF_HUB_OFFLINE", os.environ.get("HF_HUB_OFFLINE", "0"))
+    environment.setdefault(
+        "TRANSFORMERS_OFFLINE", os.environ.get("TRANSFORMERS_OFFLINE", "0")
+    )
     python = resolve_policy_python()
     command = [
         python,
