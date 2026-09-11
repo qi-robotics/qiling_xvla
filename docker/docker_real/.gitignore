@@ -6,3 +6,4 @@ outputs/*
 !outputs/.gitkeep
 runtime/*
 !runtime/.gitkeep
+dependencies/proxy.env

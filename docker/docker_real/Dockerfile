@@ -1,36 +1,42 @@
+# syntax=m.daocloud.io/docker.io/docker/dockerfile:1.7
+
 ARG ROS_BUILD_IMAGE=m.daocloud.io/docker.io/library/ros:humble-ros-base-jammy
 ARG ROS_RUNTIME_IMAGE=m.daocloud.io/docker.io/library/ros:humble-ros-core-jammy
 
 FROM ${ROS_RUNTIME_IMAGE} AS apt-base
 
 ARG UBUNTU_APT_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/ubuntu
+ARG UBUNTU_SECURITY_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/ubuntu
 ARG ROS2_APT_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Ubuntu 22.04 uses /etc/apt/sources.list. The official ROS image also ships a
-# ros2.list entry. Both are rewritten before any apt package is downloaded.
+# Keep archive and security mirrors separately configurable. This lets the
+# proxy profile use upstream endpoints while the domestic profile uses TUNA.
 RUN sed -ri \
-      "s#https?://(archive|security)\.ubuntu\.com/ubuntu/?#${UBUNTU_APT_MIRROR}/#g" \
+      "s#https?://archive\\.ubuntu\\.com/ubuntu/?#${UBUNTU_APT_MIRROR}/#g; \
+       s#https?://security\\.ubuntu\\.com/ubuntu/?#${UBUNTU_SECURITY_MIRROR}/#g" \
       /etc/apt/sources.list \
     && find /etc/apt/sources.list.d -type f -name '*.list' -exec \
-      sed -ri "s#https?://packages\.ros\.org/ros2/ubuntu/?#${ROS2_APT_MIRROR}/#g" '{}' +
+      sed -ri "s#https?://packages\\.ros\\.org/ros2/ubuntu/?#${ROS2_APT_MIRROR}/#g" '{}' +
 
 
 FROM ${ROS_BUILD_IMAGE} AS ros-builder
 
 ARG UBUNTU_APT_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/ubuntu
+ARG UBUNTU_SECURITY_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/ubuntu
 ARG ROS2_APT_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/ros2/ubuntu
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN sed -ri \
-      "s#https?://(archive|security)\.ubuntu\.com/ubuntu/?#${UBUNTU_APT_MIRROR}/#g" \
+      "s#https?://archive\\.ubuntu\\.com/ubuntu/?#${UBUNTU_APT_MIRROR}/#g; \
+       s#https?://security\\.ubuntu\\.com/ubuntu/?#${UBUNTU_SECURITY_MIRROR}/#g" \
       /etc/apt/sources.list \
     && find /etc/apt/sources.list.d -type f -name '*.list' -exec \
-      sed -ri "s#https?://packages\.ros\.org/ros2/ubuntu/?#${ROS2_APT_MIRROR}/#g" '{}' + \
+      sed -ri "s#https?://packages\\.ros\\.org/ros2/ubuntu/?#${ROS2_APT_MIRROR}/#g" '{}' + \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
       python3-colcon-common-extensions \
@@ -50,18 +56,23 @@ FROM apt-base AS reasoning-builder
 ARG MINICONDA_URL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py312_25.9.1-3-Linux-x86_64.sh
 ARG MINICONDA_SHA256=07fc00c146a481f7ae2657a31eb7ec0d5d77a107b981d58ab5d7cd8bc99be778
 ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ARG PYTORCH_INDEX_URL=
 
 ENV CONDA_ROOT=/opt/qi-reasoning \
     CONDARC=/opt/qiling/dependencies/condarc \
     PIP_INDEX_URL=${PIP_INDEX_URL} \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 COPY dependencies/condarc /opt/qiling/dependencies/condarc
 
+# build-essential exists only in this discarded builder stage. It is required
+# because evdev is distributed as a source archive for this platform.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && apt-get install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      curl \
     && curl --fail --location --retry 5 --retry-delay 2 \
       "${MINICONDA_URL}" -o /tmp/miniconda.sh \
     && echo "${MINICONDA_SHA256}  /tmp/miniconda.sh" | sha256sum --check --strict \
@@ -70,15 +81,50 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY dependencies/python-constraints.txt /opt/qiling/dependencies/python-constraints.txt
+
+# Each expensive or failure-prone dependency group has its own cache boundary.
+# BuildKit's pip cache survives a failed RUN but is not copied into the image.
+RUN --mount=type=cache,id=qiling-pip-cache,target=/root/.cache/pip,sharing=locked \
+    "${CONDA_ROOT}/bin/python" -m pip install --upgrade pip setuptools wheel
+
+RUN --mount=type=cache,id=qiling-pip-cache,target=/root/.cache/pip,sharing=locked \
+    pytorch_args=(); \
+    if [[ -n "${PYTORCH_INDEX_URL}" ]]; then \
+      pytorch_args+=(--index-url "${PYTORCH_INDEX_URL}"); \
+    fi; \
+    "${CONDA_ROOT}/bin/python" -m pip install \
+      "${pytorch_args[@]}" \
+      -c /opt/qiling/dependencies/python-constraints.txt \
+      torch==2.7.0 torchvision==0.22.0
+
+# Install the native package before LeRobot so a later resolver/package failure
+# never invalidates the large PyTorch layer.
+RUN --mount=type=cache,id=qiling-pip-cache,target=/root/.cache/pip,sharing=locked \
+    "${CONDA_ROOT}/bin/python" -m pip install \
+      -c /opt/qiling/dependencies/python-constraints.txt \
+      evdev==2.0.0
+
+# Preinstall the large, stable XVLA dependency set. Local LeRobot changes
+# therefore do not force these packages to be downloaded again.
+RUN --mount=type=cache,id=qiling-pip-cache,target=/root/.cache/pip,sharing=locked \
+    "${CONDA_ROOT}/bin/python" -m pip install \
+      -c /opt/qiling/dependencies/python-constraints.txt \
+      accelerate==1.14.0 \
+      av==15.1.0 \
+      datasets==4.8.5 \
+      diffusers==0.35.2 \
+      huggingface-hub==1.23.0 \
+      numpy==2.2.6 \
+      opencv-python-headless==4.12.0.88 \
+      safetensors==0.8.0 \
+      tokenizers==0.22.2 \
+      torchcodec==0.10.0 \
+      transformers==5.3.0
+
 COPY third_party/lerobot /tmp/lerobot
 
-# PyTorch 2.7.0 and its NVIDIA CUDA dependencies are available from TUNA's
-# PyPI mirror. LeRobot is installed from the vendored 0.5.0 source snapshot.
-RUN "${CONDA_ROOT}/bin/python" -m pip install --upgrade pip setuptools wheel \
-    && "${CONDA_ROOT}/bin/python" -m pip install \
-      -c /opt/qiling/dependencies/python-constraints.txt \
-      torch==2.7.0 torchvision==0.22.0 \
-    && "${CONDA_ROOT}/bin/python" -m pip install \
+RUN --mount=type=cache,id=qiling-pip-cache,target=/root/.cache/pip,sharing=locked \
+    "${CONDA_ROOT}/bin/python" -m pip install \
       -c /opt/qiling/dependencies/python-constraints.txt \
       "/tmp/lerobot[xvla]" \
       modelscope==1.39.1 \
@@ -86,7 +132,7 @@ RUN "${CONDA_ROOT}/bin/python" -m pip install --upgrade pip setuptools wheel \
     && "${CONDA_ROOT}/bin/conda" clean --all --yes \
     && find "${CONDA_ROOT}" -type d -name __pycache__ -prune -exec rm -rf '{}' + \
     && find "${CONDA_ROOT}" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete \
-    && rm -rf /tmp/lerobot /root/.cache
+    && rm -rf /tmp/lerobot
 
 RUN "${CONDA_ROOT}/bin/python" -c \
       "import av, lerobot, modelscope, torch, transformers; print(torch.__version__, transformers.__version__)"

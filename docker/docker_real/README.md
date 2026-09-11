@@ -1,266 +1,433 @@
-# Docker 部署（真机）
+# Qiling XVLA 训练与真机 Rollout
+
+`qiling_release` 是可独立复制和交付的 Docker 目录，包含 XVLA 训练、推理以及
+真机 rollout 主机侧控制链路。用户不需要在主机安装 ROS 2、Conda、LeRobot
+或 CUDA Toolkit。
+
+交付镜像统一命名为：
 
-该目录是真机侧的训练和 rollout：一个镜像 `qi-reasoning:local`，Compose 起三个角色。
+~~~text
+qi-reasoning:local
+~~~
 
-- `control`：`topic_convertor` + rollout bridge（ROS 2）
-- `worker`：XVLA 实时推理
-- `trainer`：XVLA 训练
+同一个镜像由 Docker Compose 以三种角色运行：
+
+- `control`：依次启动 `topic_convertor` 和 rollout bridge；
+- `worker`：加载 XVLA checkpoint，通过本机 IPC 向 bridge 返回 action chunk；
+- `trainer`：使用外置 LeRobot 数据集训练 XVLA。
 
-**不要和** `docker/docker_sim/` **混用。** 仿真走 Isaac + 另一套镜像；真机 SDK、RealSense、图像压缩节点也不在本目录，它们跑在机器人 PC 上。
+真机 SDK、RealSense 驱动、三路相机和真机侧图像压缩节点不包含在本目录中。
 
-脚本按自己所在目录找配置，可在仓库根直接跑 `./docker/docker_real/scripts/...`。下文主命令都按这个写。
+## 1. 目录结构
 
-数据和产物写在本目录挂载里，**不是**仿真用的 `~/X-VLA`：
+~~~text
+qiling_release/
+├── Dockerfile
+├── compose.yaml
+├── config/qiling.yaml                 # 训练和 rollout 唯一用户配置
+├── dependencies/
+│   ├── build.domestic.env             # 国内直连构建源
+│   ├── build.proxy.env                # 代理构建源
+│   ├── proxy.env.example              # 本机代理配置示例
+│   ├── python-constraints.txt
+│   └── condarc
+├── ros_ws/src/                        # 主机侧最小 ROS 2 源码
+├── app/                               # XVLA worker、训练和运行验证
+├── container/                         # 容器入口
+├── third_party/                       # LeRobot 0.5.0 与离线 tokenizer
+├── scripts/                           # 用户入口脚本
+├── models/                            # 外置模型目录
+├── datasets/                          # 外置 LeRobot 数据集目录
+├── outputs/                           # 外置训练结果目录
+└── runtime/                           # 生成配置、缓存和运行日志
+~~~
 
-```text
-docker/docker_real/
-├── config/qiling.yaml     # 唯一要改的配置
-├── models/                # 从魔搭拉下来的权重
-├── datasets/              # 训练用 LeRobot 数据集
-├── outputs/               # 训练结果
-└── runtime/               # 自动生成的 yaml / 缓存 / 日志（不要手改）
-```
+模型、数据集、训练结果和运行日志不会复制进镜像。
 
----
+## 2. 主机要求
 
-## 0. 先选一条路
+- Linux x86_64；
+- Docker Engine；
+- Docker Compose v2；
+- NVIDIA GPU 和兼容驱动；
+- NVIDIA Container Toolkit；
+- 训练或 rollout 时，GPU 应支持当前使用的 PyTorch 2.7/CUDA 12.6；
+- rollout 主机能够通过 ROS 2 DDS 与机器人 PC 通信。
 
-**路径 A — 不训练，用现成 200k ckpt 做真机 rollout（推荐先走这条）**
+检查基础环境：
 
-```bash
-./docker/docker_real/scripts/build.sh
-./docker/docker_real/scripts/download_models.sh all
-# 机器人 PC 上先开 SDK + 三路相机（见第 4 节）
-./docker/docker_real/scripts/start_rollout.sh
-```
+~~~bash
+docker --version
+docker compose version
+nvidia-smi
+docker run --rm --gpus all ubuntu:22.04 nvidia-smi
+~~~
 
-**路径 B — 自己用真机数据训练，再 rollout**
+主机上的 NVIDIA 驱动由用户安装；CUDA 12.6 用户态库由 Python 依赖带入镜像。
 
-```bash
-./docker/docker_real/scripts/build.sh
-./docker/docker_real/scripts/download_models.sh base
-# 把 LeRobot 数据集放到 docker/docker_real/datasets/qiling_training_dataset/
-./docker/docker_real/scripts/train.sh
-# 改 config/qiling.yaml 指向训出来的 ckpt 后，再 start_rollout.sh
-```
+## 3. 第一次准备
 
-下面各节解释这些主命令；可选参数不要当成步骤连着跑。
+~~~bash
+cd qiling_release
+chmod +x scripts/*.sh container/*.sh
+~~~
 
----
+然后根据网络环境选择下面一种构建方式，不需要两种都执行。
 
-## 1. 机器要求
+## 4. 无代理构建（国内网络推荐）
 
-| 项 | 要求 |
-|---|---|
-| 系统 | Linux x86_64 |
-| 软件 | Docker Engine、Docker Compose v2、[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) |
-| GPU | NVIDIA 独立显卡 + 兼容驱动（镜像里有 CUDA 用户态，主机仍要有驱动） |
-| 网络 | 本机 ROS 2 DDS 能和机器人 PC 互通，`ROS_DOMAIN_ID` 一致 |
+~~~bash
+./scripts/build_no_proxy.sh
+~~~
 
-主机不用装 ROS、Conda、LeRobot、CUDA Toolkit。全程用**当前用户**跑 `docker`，不要 `sudo docker`。
+该模式使用：
 
-镜像里有两套 Python，脚本已写死路径，不要自己 `conda activate`：
+- DaoCloud 代理的 ROS Humble 镜像；
+- 清华 Ubuntu 22.04 APT 镜像；
+- 清华 ROS 2 APT 镜像；
+- 清华 Miniconda 镜像；
+- 清华 PyPI 镜像。
 
-| 用途 | 解释器 |
-|---|---|
-| ROS 2 Humble | `/usr/bin/python3`（3.10） |
-| XVLA 训练 / 推理 | `/opt/qi-reasoning/bin/python`（3.12） |
+脚本会清除本次构建进程继承的代理变量。如果检测到 Docker daemon 配置了代理，
+脚本会在 `/run/systemd/system/docker.service.d/` 创建临时覆盖并重启 Docker。
+构建成功、失败或收到 `Ctrl+C` 后，都会删除临时覆盖并恢复原来的 Docker daemon
+代理设置。
 
-构建默认走国内源（清华 APT / PyPI / Anaconda，ROS 底包走 DaoCloud，权重走魔搭）。改地址只动 `dependencies/build.env`，不必改 Dockerfile。版本细节见 [dependencies/README.md](dependencies/README.md)。
+只有检测到 daemon 代理时才会使用 `sudo` 和重启 Docker。重启期间会短暂影响主机
+上的其他容器，建议在没有其他 Docker 任务时构建。
 
----
+兼容入口：
 
-## 2. 准备镜像（两条路都要，只做一次）
+~~~bash
+./scripts/test_build_without_proxy.sh
+~~~
 
-**就执行这一条：**
+它会直接转发到 `build_no_proxy.sh`。
 
-```bash
-./docker/docker_real/scripts/build.sh
-```
+如果进程被 `kill -9`，退出钩子可能无法恢复临时配置，可手动执行：
 
-它会：拉 ROS 底包 → 编最小 ROS 2 工作空间 → 装固定版本 Miniconda / PyTorch / LeRobot → 生成 `qi-reasoning:local` → 渲染 `config/qiling.yaml` → 有 GPU 时做一次 CUDA 检查。
+~~~bash
+sudo rm -f /run/systemd/system/docker.service.d/zz-qiling-no-proxy.conf
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+~~~
 
-**不要当步骤执行：**
+## 5. 代理构建
 
-| 命令 | 什么时候用 |
-|---|---|
-| `./docker/docker_real/scripts/setup.sh` | 旧名字，内部就是 `build.sh`，不必再跑 |
-| `QI_BUILD_WITHOUT_PROXY=1 ./docker/docker_real/scripts/build.sh` | 交付验收：确认不靠代理也能编过 |
-| `./docker/docker_real/scripts/test_build_without_proxy.sh` | 同上，会临时动 Docker systemd 并重启 Docker；**不要在有别的容器在跑时用** |
+### 5.1 使用当前 shell 的代理
 
----
+如果当前 shell 已设置 `HTTP_PROXY` 或 `HTTPS_PROXY`：
 
-## 3. 下载权重
+~~~bash
+./scripts/build_with_proxy.sh
+~~~
 
-默认从魔搭 [keno123/qi-studio_embodied_edu](https://modelscope.cn/datasets/keno123/qi-studio_embodied_edu) 只拉 `xvla/` 下两棵子树，不要整仓下：
+### 5.2 仅为本次构建指定代理
 
-| 资产 | 魔搭路径 | 放到 |
-|---|---|---|
-| 训练基座 | `xvla/xvla_base` | `docker/docker_real/models/qiling_xvla_base/` |
-| 真机 200k ckpt | `xvla/real_200k_checkpoints` | `docker/docker_real/models/qiling_xvla_real_200k/` |
+~~~bash
+QI_PROXY_URL=http://127.0.0.1:7890 \
+  ./scripts/build_with_proxy.sh
+~~~
 
-**路径 A 就执行这一条：**
+### 5.3 使用本地配置文件
 
-```bash
-./docker/docker_real/scripts/download_models.sh all
-```
+~~~bash
+cp dependencies/proxy.env.example dependencies/proxy.env
+nano dependencies/proxy.env
+./scripts/build_with_proxy.sh
+~~~
 
-**不要当步骤执行（三选一，不要连跑）：**
+`dependencies/proxy.env` 已被 `.gitignore` 排除，不应提交真实代理地址或认证信息。
 
-| 命令 | 什么时候用 |
-|---|---|
-| `./docker/docker_real/scripts/download_models.sh all` | **默认**，基座 + 200k 都要 |
-| `./docker/docker_real/scripts/download_models.sh base` | 只要自己训，暂时不 rollout |
-| `./docker/docker_real/scripts/download_models.sh rollout` | 只要现成 ckpt 做 rollout，不训 |
+代理模式使用官方 ROS、Ubuntu、ROS 2、Anaconda、PyPI 和 PyTorch CUDA 12.6
+索引。代理参数只传给 Dockerfile 的构建过程，不会写进最终镜像。
 
-仓库若是私有的，先在当前 shell 导出 `MS_TOKEN`，再跑上面那条；不要把 token 写进 yaml、脚本或镜像。
+需要区分两条网络链路：
 
-训练数据集**不会**随 `download_models.sh` 下来。自备数据放到 `docker/docker_real/datasets/qiling_training_dataset/`。只有在 `config/qiling.yaml` 的 `assets.dataset` 填好仓库后，才用 `./docker/docker_real/scripts/download_dataset.sh`。现在默认是空的，直接跑会失败。
+1. `docker pull` 由 Docker daemon 发起，使用 daemon 自己的代理配置；
+2. Dockerfile 中的 `apt`、`curl`、`pip` 使用脚本临时传入的代理。
 
----
+如果主机不能直连 Docker Hub，还需要提前为 Docker daemon 配置代理。
+Compose 构建使用 host 网络，因此 `QI_PROXY_URL=http://127.0.0.1:7890`
+可以访问主机上的代理程序。
 
-## 4. 统一配置
+## 6. 构建缓存与速度
 
-训练和 rollout **只改这一个文件**：
+Dockerfile 使用 Python 3.12，与当前 LeRobot 0.5.0 的 `Python >=3.12` 要求一致。
+没有直接改用 `pytorch/pytorch:2.7.0-cuda12.6-cudnn9-runtime`，因为该版本官方
+镜像使用 Python 3.11，无法满足本交付包的 LeRobot 版本要求。
 
-```text
-docker/docker_real/config/qiling.yaml
-```
+耗时依赖被拆成独立缓存层：
 
-每次 `train.sh` / `start_rollout.sh` 会重新生成 `runtime/` 下的 yaml 和 `cyclonedds.xml`。那些是产物，不要手改。
+~~~text
+Miniconda Python 3.12
+  -> pip/setuptools/wheel
+  -> PyTorch 2.7 + torchvision 0.22
+  -> evdev 原生编译
+  -> XVLA 通用依赖
+  -> LeRobot + ModelScope
+  -> 运行验证
+~~~
 
-首次真机必须：
+`build-essential` 只存在于被丢弃的 builder 阶段，不会进入最终镜像。
+PyTorch、通用依赖和 LeRobot 不再位于同一个 `RUN` 中：即使后面的包安装失败，
+已经成功的 PyTorch 层仍可复用。
 
-```yaml
-deployment:
-  execution_mode: shadow
-```
+pip 下载目录使用 BuildKit cache mount：
 
-`shadow` 只推理和记日志，不向真机发命令。验证通过后再改成 `armed`；`armed` 启动时还要在终端输入 `ARM` 才会继续。
+- 构建失败后保留已下载文件；
+- 后续构建复用下载缓存；
+- 缓存不会增加最终镜像体积。
 
-`ros_domain_id` 必须和机器人 PC 上 SDK、相机节点相同（默认 `16`）。跨机器发现异常时，把 `dds_interface: auto` 改成实际网卡名。
+默认不会强制刷新基础镜像。需要主动检查新基础镜像时：
 
----
+~~~bash
+QI_PULL_BASE=1 ./scripts/build_no_proxy.sh
+~~~
 
-## 5. 路径 B：训练
+或：
 
-先把已转换的 LeRobot 数据集放到：
+~~~bash
+QI_PULL_BASE=1 QI_PROXY_URL=http://127.0.0.1:7890 \
+  ./scripts/build_with_proxy.sh
+~~~
 
-```text
-docker/docker_real/datasets/qiling_training_dataset/
-```
+第一次构建仍需下载数 GB 的 PyTorch/CUDA 包；优化重点是提高代理选择能力，并避免
+安装后期失败时全部重新下载。不要在普通重试前执行 `docker builder prune`，否则会
+清除这部分构建缓存。
 
-**就执行这一条：**
+高级入口为：
 
-```bash
-./docker/docker_real/scripts/train.sh
-```
+~~~bash
+./scripts/build.sh domestic
+./scripts/build.sh proxy
+~~~
 
-默认从 `xvla_base` 全量微调，结果在 `docker/docker_real/outputs/xvla_full_finetune/`。步数、batch 等只改 `config/qiling.yaml`。
+这两个命令只选择软件源，不负责临时启用或关闭代理，普通用户优先使用前面的包装脚本。
 
-**不要当步骤执行：**
+构建完成后会：
 
-```bash
-./docker/docker_real/scripts/train.sh --dry-run
-```
+1. 生成 `qi-reasoning:local`；
+2. 渲染 `config/qiling.yaml`；
+3. 检测到 NVIDIA GPU 时验证容器内 PyTorch/CUDA；
+4. 保留 ROS 编译和 Python 下载缓存供后续增量构建。
 
-只检查命令、不真正开训。
+## 7. 统一配置
 
-训完若要用这份 ckpt 做真机 rollout，在 `config/qiling.yaml` 把 `rollout.model.checkpoint_path` 指到容器内路径，例如：
+训练和 rollout 参数统一修改：
 
-```text
-/opt/qiling/outputs/xvla_full_finetune/checkpoints/200000/pretrained_model
-```
+~~~text
+config/qiling.yaml
+~~~
 
-不填则继续用魔搭那份 `rollout_checkpoint`。
+每次启动前会生成：
 
----
+~~~text
+runtime/rollout_host.yaml
+runtime/xvla_rollout.yaml
+runtime/xvla_training.yaml
+runtime/cyclonedds.xml
+runtime/release.env
+~~~
 
-## 6. 路径 A / 训完之后：真机 rollout
+这些是运行产物，不要手动编辑。
 
-### 6.1 机器人 PC（本目录之外）
+## 8. 下载模型
 
-先启动机器人 SDK。再在机器人 PC 的完整工程里开三路相机。下面路径以现场机器为例，按实际安装位置改：
+默认从 ModelScope dataset 仓库下载：
 
-```bash
+~~~text
+keno123/qi-studio_embodied_edu
+├── xvla/xvla_base
+└── xvla/real_200k_checkpoints
+~~~
+
+下载训练基础权重和 rollout 权重：
+
+~~~bash
+./scripts/download_models.sh all
+~~~
+
+只下载其中一项：
+
+~~~bash
+./scripts/download_models.sh base
+./scripts/download_models.sh rollout
+~~~
+
+私有仓库使用：
+
+~~~bash
+export MS_TOKEN="ms-your-token"
+./scripts/download_models.sh all
+unset MS_TOKEN
+~~~
+
+Token 不会写入镜像或 YAML。
+
+## 9. 训练
+
+把已经转换好的 LeRobot 数据集放到：
+
+~~~text
+datasets/qiling_training_dataset/
+~~~
+
+如果数据集已上传至 ModelScope，先填写 `config/qiling.yaml` 中
+`assets.dataset`，然后执行：
+
+~~~bash
+./scripts/download_dataset.sh
+~~~
+
+检查训练命令和配置但不启动：
+
+~~~bash
+./scripts/train.sh --dry-run
+~~~
+
+正式训练：
+
+~~~bash
+./scripts/train.sh
+~~~
+
+默认输出到：
+
+~~~text
+outputs/xvla_full_finetune/
+~~~
+
+训练数据路径、基础权重、batch size、steps、保存频率及输出目录都在
+`config/qiling.yaml` 中修改。
+
+## 10. 真机侧准备
+
+先启动机器人 SDK。然后在机器人 PC 的完整 Qiling 工程中执行：
+
+~~~bash
 cd /home/coral/liujun/qiling_television
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 export ROS_DOMAIN_ID=16
 export ROS_LOCALHOST_ONLY=0
 bash src/scripts/start_rollout_cameras.sh
-```
+~~~
 
-如果相机和压缩包还没编过，先：
+如果机器人 PC 还没有编译相机和压缩包：
 
-```bash
+~~~bash
 cd /home/coral/liujun/qiling_television
 source /opt/ros/humble/setup.bash
 colcon build --packages-select qiling_recording_real qiling_rollout_ros
 source install/setup.bash
-```
+~~~
 
-`start_rollout_cameras.sh` 会开三路 RealSense `640×480 @ 30 Hz`，等 5 秒，再开 `15 Hz`、JPEG quality=80 的压缩。脚本保持前台；`Ctrl+C` 会一起停相机和压缩。
+`start_rollout_cameras.sh` 会：
 
-开跑前确认：
+1. 启动三路 RealSense，分辨率为 `640x480 @ 30 Hz`；
+2. 等待 5 秒；
+3. 启动 `15 Hz、JPEG quality=80` 的压缩传输节点。
 
-- SDK 在发状态、能收命令
-- 三路压缩图像话题正常
-- Domain ID 与 `config/qiling.yaml` 相同
-- 遥操和其它控制发布者都已停掉
+等价命令为：
 
-### 6.2 本机启动
+~~~bash
+ros2 launch qiling_recording_real tri_camera.launch.py
 
-**就执行这一条：**
+ros2 launch qiling_rollout_ros rollout_image_transport.launch.py \
+  output_rate_hz:=15.0 \
+  jpeg_quality:=80
+~~~
 
-```bash
-./docker/docker_real/scripts/start_rollout.sh
-```
+真机侧需要满足：
 
-固定顺序：`topic_convertor` → 等 `/human_lower_state` → rollout bridge → 当前姿态过渡到 home → 稳定再延时 10 秒 → worker 建 IPC → `ROLLOUT`。
+- SDK 已发布机器人状态并接收控制命令；
+- 三路压缩图像话题持续发布；
+- ROS Domain ID 与 `config/qiling.yaml` 一致；
+- 遥操和其他控制命令发布者已经停止。
 
-任务正常结束（观察机器人回到 home）：
+## 11. 主机侧 Rollout
 
-```bash
-./docker/docker_real/scripts/finish_rollout.sh
-./docker/docker_real/scripts/stop_rollout.sh
-```
+首次部署必须设置：
 
-出现异常动作立刻：
+~~~yaml
+deployment:
+  execution_mode: shadow
+~~~
 
-```bash
-./docker/docker_real/scripts/abort_rollout.sh
-```
+然后运行：
 
-`abort` 会卡住当前测得的手臂位姿并拆容器；正常收工用 `finish` 回 home，再用 `stop`。
+~~~bash
+./scripts/start_rollout.sh
+~~~
 
----
+脚本会同时启动 `control` 和 `worker`，内部顺序为：
 
-## 7. 客户只用这些脚本
+~~~text
+topic_convertor
+  -> 等待 /human_lower_state
+  -> rollout bridge
+  -> 当前姿态到过渡点
+  -> 双臂到 home
+  -> 稳定并等待 10 秒
+  -> bridge 开放本机 IPC
+  -> worker 开始持续推理
+  -> ROLLOUT
+~~~
 
-| 脚本 | 作用 | 要不要单独跑 |
-|---|---|---|
-| `./docker/docker_real/scripts/build.sh` | 编 `qi-reasoning:local` | 要，第一步 |
-| `./docker/docker_real/scripts/download_models.sh` | 从魔搭拉基座 / 200k ckpt | 要 |
-| `./docker/docker_real/scripts/train.sh` | 训练 | 只要走路径 B |
-| `./docker/docker_real/scripts/start_rollout.sh` | 起 control + worker | 要，最后一步 |
-| `./docker/docker_real/scripts/finish_rollout.sh` | 正常结束、回 home | 任务结束时 |
-| `./docker/docker_real/scripts/stop_rollout.sh` | 停容器 | `finish` 之后，或收工 |
-| `./docker/docker_real/scripts/abort_rollout.sh` | 紧急停 | 只有异常时 |
-| `./docker/docker_real/scripts/download_dataset.sh` | 从魔搭拉训练集 | 只有 yaml 里填了 dataset 仓库 |
-| `./docker/docker_real/scripts/shell.sh control` / `reasoning` | 进容器排错 | 不用当步骤 |
-| `./docker/docker_real/scripts/render_config.sh` | 只重新渲染 runtime yaml | 不用单独跑，train/rollout 会做 |
+shadow 验证状态、图像、模型和 IPC 都正常后，再把
+`deployment.execution_mode` 改为 `armed`。armed 启动时必须输入 `ARM`
+进行二次确认。
 
-不要当入口：`common.sh`、`container/*.sh`、`app/`、`tools/`、`Dockerfile`、`compose.yaml`。
+任务正常完成：
 
----
+~~~bash
+./scripts/finish_rollout.sh
+~~~
 
-## 8. 镜像
+等待机器人回到 home 后停止全部容器：
 
-一个 Dockerfile，一个镜像，三个 Compose 服务共用：
+~~~bash
+./scripts/stop_rollout.sh
+~~~
 
-| 镜像 | 谁准备 | 用途 |
-|---|---|---|
-| `qi-reasoning:local` | 客户本机 `build.sh` 编译 | control / worker / trainer |
+异常动作、碰撞风险或需要立即停止时：
 
-权重、数据集、输出、日志都不进镜像。源码是发布快照，改主工程后这里不会自动变；版本见 [SOURCE_SNAPSHOT.md](SOURCE_SNAPSHOT.md)。
+~~~bash
+./scripts/abort_rollout.sh
+~~~
+
+`abort` 不执行自动回 home；操作人员应保持急停可用。
+
+## 12. 常用排查
+
+查看服务状态：
+
+~~~bash
+docker compose ps
+docker compose logs -f control
+docker compose logs -f worker
+~~~
+
+进入容器：
+
+~~~bash
+./scripts/shell.sh control
+./scripts/shell.sh reasoning
+~~~
+
+检查镜像：
+
+~~~bash
+docker image inspect qi-reasoning:local
+docker run --rm --gpus all qi-reasoning:local
+~~~
+
+查看 BuildKit 缓存：
+
+~~~bash
+docker buildx du
+~~~
+
+依赖版本说明见 [dependencies/README.md](dependencies/README.md)，源码快照版本见
+[SOURCE_SNAPSHOT.md](SOURCE_SNAPSHOT.md)。
