@@ -13,7 +13,7 @@ ln -sfn "${WORK}/datasets" "${OPT}/datasets"
 ln -sfn "${WORK}/outputs" "${OPT}/outputs"
 ln -sfn "${WORK}/reports" "${OPT}/reports"
 
-export XVLA_POLICY_PYTHON="${XVLA_POLICY_PYTHON:-/opt/qiling_xvla/docker/docker_sim/xvla_policy_python.sh}"
+export XVLA_POLICY_PYTHON="${XVLA_POLICY_PYTHON:-/opt/qiling_xvla/docker/docker_sim/container/xvla_policy_python.sh}"
 
 ISAAC_PYTHON="/isaac-sim/python.sh"
 if [[ ! -x "${ISAAC_PYTHON}" ]]; then

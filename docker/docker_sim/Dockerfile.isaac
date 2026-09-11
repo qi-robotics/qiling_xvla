@@ -28,15 +28,16 @@ WORKDIR /isaac-sim
 RUN ./python.sh -m pip install --no-cache-dir -i "${PIP_INDEX_URL}" 'pin==2.7.0'
 
 COPY --chown=1234:1234 . /opt/qiling_xvla
-RUN chmod +x /opt/qiling_xvla/docker/docker_sim/*.sh \
-    && ln -sfn docker_sim/entrypoint-isaac.sh /opt/qiling_xvla/docker/entrypoint-isaac.sh \
-    && ln -sfn docker_sim/xvla_policy_python.sh /opt/qiling_xvla/docker/xvla_policy_python.sh
+RUN chmod +x /opt/qiling_xvla/docker/docker_sim/scripts/*.sh \
+        /opt/qiling_xvla/docker/docker_sim/container/*.sh \
+    && ln -sfn docker_sim/container/entrypoint-isaac.sh /opt/qiling_xvla/docker/entrypoint-isaac.sh \
+    && ln -sfn docker_sim/container/xvla_policy_python.sh /opt/qiling_xvla/docker/xvla_policy_python.sh
 
 USER 1234
 WORKDIR /opt/qiling_xvla
 ENV QILING_WORKSPACE=/workspace/X-VLA \
-    XVLA_POLICY_PYTHON=/opt/qiling_xvla/docker/docker_sim/xvla_policy_python.sh \
+    XVLA_POLICY_PYTHON=/opt/qiling_xvla/docker/docker_sim/container/xvla_policy_python.sh \
     NVIDIA_DRIVER_CAPABILITIES=all
 
-ENTRYPOINT ["/opt/qiling_xvla/docker/docker_sim/entrypoint-isaac.sh"]
+ENTRYPOINT ["/opt/qiling_xvla/docker/docker_sim/container/entrypoint-isaac.sh"]
 CMD ["bash"]

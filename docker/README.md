@@ -14,9 +14,9 @@ Quest 遥操**不用 Docker**，源码安装见 [teleop/README.md](../teleop/REA
 **仿真（Isaac，不碰真机）：**
 
 ```bash
-./docker/docker_sim/up.sh
-./docker/docker_sim/fetch_modelscope.sh
-./docker/docker_sim/rollout.sh --seed 40
+./docker/docker_sim/scripts/up.sh
+./docker/docker_sim/scripts/fetch_modelscope.sh
+./docker/docker_sim/scripts/rollout.sh --seed 40
 ```
 
 **真机（本机 Docker + 机器人 PC 的 SDK/相机）：**

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Shared paths and docker compose wrapper for docker/docker_sim/*.sh.
+# Shared paths and docker compose wrapper for docker/docker_sim/scripts/*.sh.
 # shellcheck disable=SC2034
 
 set -euo pipefail
 
-DOCKER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${DOCKER_DIR}/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SIM_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SIM_DIR}/../.." && pwd)"
 
 QILING_ROOT="${QILING_ROOT:-${HOME}/X-VLA}"
 QILING_XVLA_TAG="${QILING_XVLA_TAG:-lerobot050}"
@@ -40,7 +41,7 @@ DEFAULT_CONFIGS=(
 qiling_compose() {
   docker compose \
     --project-directory "${REPO_ROOT}" \
-    -f "${DOCKER_DIR}/docker-compose.yml" \
+    -f "${SIM_DIR}/docker-compose.yml" \
     "$@"
 }
 
@@ -203,7 +204,7 @@ ensure_lerobot_dataset() {
   recorded="${QILING_ROOT}/datasets/recorded_slender_pin_v1"
   if [[ ! -d "${recorded}" ]]; then
     echo "No LeRobot dataset and no recorded episodes." >&2
-    echo "Run ./docker/docker_sim/record.sh first, or ./docker/docker_sim/fetch_modelscope.sh" >&2
+    echo "Run ./docker/docker_sim/scripts/record.sh first, or ./docker/docker_sim/scripts/fetch_modelscope.sh" >&2
     return 1
   fi
   echo "[train] converting recorded episodes to LeRobot v3" >&2

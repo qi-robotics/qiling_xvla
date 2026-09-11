@@ -28,5 +28,5 @@ qiling_compose build isaac
 
 echo
 echo "[up] ready. Next:"
-echo "  skip collect/train:  ./docker/docker_sim/fetch_modelscope.sh && ./docker/docker_sim/rollout.sh --seed 40"
-echo "  or collect+train:    ./docker/docker_sim/record.sh --count 3 && ./docker/docker_sim/train.sh && ./docker/docker_sim/rollout.sh --seed 40"
+echo "  skip collect/train:  ./docker/docker_sim/scripts/fetch_modelscope.sh && ./docker/docker_sim/scripts/rollout.sh --seed 40"
+echo "  or collect+train:    ./docker/docker_sim/scripts/record.sh --count 3 && ./docker/docker_sim/scripts/train.sh && ./docker/docker_sim/scripts/rollout.sh --seed 40"

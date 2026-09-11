@@ -201,14 +201,14 @@ SSH 需能访问 `qi-robotics` 组织。若本机用了 ssh Host 别名，把 re
 **仿真**（Isaac；可选参数见 [docker/docker_sim/README.md](docker/docker_sim/README.md)）：
 
 ```bash
-./docker/docker_sim/up.sh
-./docker/docker_sim/fetch_modelscope.sh
-./docker/docker_sim/rollout.sh --seed 40
+./docker/docker_sim/scripts/up.sh
+./docker/docker_sim/scripts/fetch_modelscope.sh
+./docker/docker_sim/scripts/rollout.sh --seed 40
 ```
 
 魔搭仓 [qi-studio_embodied_edu](https://modelscope.cn/datasets/keno123/qi-studio_embodied_edu) 里还有 bottleInBowl / smolVLA 等课程资料，仿真脚本 **只拉 `xvla/`**。数据写在 `~/X-VLA`。
 
-自己在仿真里采集再训练：`./docker/docker_sim/record.sh --count 3` 然后 `./docker/docker_sim/train.sh`，不要再加 `--from-base` / `--resume`。
+自己在仿真里采集再训练：`./docker/docker_sim/scripts/record.sh --count 3` 然后 `./docker/docker_sim/scripts/train.sh`，不要再加 `--from-base` / `--resume`。
 
 **真机**（本机 Docker + 机器人 PC 的 SDK/相机；完整步骤见 [docker/docker_real/README.md](docker/docker_real/README.md)）：
 
@@ -220,7 +220,7 @@ SSH 需能访问 `qi-robotics` 组织。若本机用了 ssh Host 别名，把 re
 
 首次必须 `execution_mode: shadow`。权重和产物在 `docker/docker_real/{models,datasets,outputs}/`，不是 `~/X-VLA`。
 
-`./docker/docker_sim/up.sh` 会登录阿里云并拉仿真镜像；真机镜像由本机 `build.sh` 编译，不必 `docker login`。
+`./docker/docker_sim/scripts/up.sh` 会登录阿里云并拉仿真镜像；真机镜像由本机 `build.sh` 编译，不必 `docker login`。
 
 ### 2.6 遥操（不用 Docker）
 

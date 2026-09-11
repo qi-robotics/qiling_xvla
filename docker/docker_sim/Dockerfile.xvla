@@ -55,12 +55,13 @@ RUN git clone --depth 1 --branch v0.5.0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=1234:1234 . /opt/qiling_xvla
-RUN chmod +x /opt/qiling_xvla/docker/docker_sim/*.sh \
-    && python /opt/qiling_xvla/docker/docker_sim/patch_lerobot_xvla_only.py \
-    && ln -sfn docker_sim/entrypoint-xvla.sh /opt/qiling_xvla/docker/entrypoint-xvla.sh \
-    && ln -sfn docker_sim/prefetch_hf.py /opt/qiling_xvla/docker/prefetch_hf.py \
-    && ln -sfn docker_sim/prefetch_hf.sh /opt/qiling_xvla/docker/prefetch_hf.sh \
-    && ln -sfn docker_sim/patch_lerobot_xvla_only.py /opt/qiling_xvla/docker/patch_lerobot_xvla_only.py \
+RUN chmod +x /opt/qiling_xvla/docker/docker_sim/scripts/*.sh \
+        /opt/qiling_xvla/docker/docker_sim/container/*.sh \
+    && python /opt/qiling_xvla/docker/docker_sim/tools/patch_lerobot_xvla_only.py \
+    && ln -sfn docker_sim/container/entrypoint-xvla.sh /opt/qiling_xvla/docker/entrypoint-xvla.sh \
+    && ln -sfn docker_sim/tools/prefetch_hf.py /opt/qiling_xvla/docker/prefetch_hf.py \
+    && ln -sfn docker_sim/scripts/prefetch_hf.sh /opt/qiling_xvla/docker/prefetch_hf.sh \
+    && ln -sfn docker_sim/tools/patch_lerobot_xvla_only.py /opt/qiling_xvla/docker/patch_lerobot_xvla_only.py \
     && chmod -R a+rX /opt/venv /opt/qiling_xvla \
     && (getent group 1234 >/dev/null || groupadd -g 1234 qiling) \
     && (getent passwd 1234 >/dev/null || useradd -u 1234 -g 1234 -M -d /opt/qiling_xvla qiling)
@@ -69,5 +70,5 @@ USER 1234
 WORKDIR /opt/qiling_xvla
 ENV QILING_WORKSPACE=/workspace/X-VLA
 
-ENTRYPOINT ["/opt/qiling_xvla/docker/docker_sim/entrypoint-xvla.sh"]
+ENTRYPOINT ["/opt/qiling_xvla/docker/docker_sim/container/entrypoint-xvla.sh"]
 CMD ["bash"]

@@ -11,23 +11,35 @@
 └── .cache/huggingface/       # 第一次训练/rollout 自动从 hf-mirror 下载
 ```
 
+本目录按角色分子目录，客户只跑 `scripts/`：
+
+```text
+docker/docker_sim/
+├── README.md
+├── Dockerfile.isaac / Dockerfile.xvla
+├── docker-compose.yml
+├── scripts/          # 客户入口：up / fetch_modelscope / record / train / rollout
+├── container/        # 容器 ENTRYPOINT 与策略 IPC，不要手跑
+└── tools/            # fetch / prefetch / patch 的 Python，不要手跑
+```
+
 **先选一条路，不要两条都走。** 每条路按顺序各执行列出的那几条，每一步只有一条主命令。
 
 **路径 A — 不采集、不训练，直接看 rollout（推荐先走这条）**
 
 ```bash
-./docker/docker_sim/up.sh
-./docker/docker_sim/fetch_modelscope.sh
-./docker/docker_sim/rollout.sh --seed 40
+./docker/docker_sim/scripts/up.sh
+./docker/docker_sim/scripts/fetch_modelscope.sh
+./docker/docker_sim/scripts/rollout.sh --seed 40
 ```
 
 **路径 B — 自己录数据再训练**
 
 ```bash
-./docker/docker_sim/up.sh
-./docker/docker_sim/record.sh --count 3
-./docker/docker_sim/train.sh
-./docker/docker_sim/rollout.sh --seed 40
+./docker/docker_sim/scripts/up.sh
+./docker/docker_sim/scripts/record.sh --count 3
+./docker/docker_sim/scripts/train.sh
+./docker/docker_sim/scripts/rollout.sh --seed 40
 ```
 
 下面各节解释这些主命令是什么意思，以及**不要当成步骤去跑**的可选参数。
@@ -60,14 +72,14 @@ Isaac 官方底包只能从 NVIDIA NGC `nvcr.io` 拉（许可证不允许转到�
 
 全程用 **当前用户** 跑 `docker`，不要 `sudo docker`。用 sudo 登录的话凭证写在 `/root/.docker/`，后面普通用户 `pull` 仍会失败。
 
-Isaac 容器 UID **1234**。`./docker/docker_sim/up.sh` 会把 `~/X-VLA` 设成可写。只有目录变成 root 才能写、脚本报权限错误时，才执行：
+Isaac 容器 UID **1234**。`./docker/docker_sim/scripts/up.sh` 会把 `~/X-VLA` 设成可写。只有目录变成 root 才能写、脚本报权限错误时，才执行：
 
 ```bash
 sudo chown -R 1234:1234 "$HOME/X-VLA"
 chmod -R a+rwX "$HOME/X-VLA"
 ```
 
-改工作根时，每条命令前面加同样的前缀，例如 `QILING_ROOT=/data/X-VLA ./docker/docker_sim/up.sh`。
+改工作根时，每条命令前面加同样的前缀，例如 `QILING_ROOT=/data/X-VLA ./docker/docker_sim/scripts/up.sh`。
 
 ---
 
@@ -76,7 +88,7 @@ chmod -R a+rwX "$HOME/X-VLA"
 **就执行这一条：**
 
 ```bash
-./docker/docker_sim/up.sh
+./docker/docker_sim/scripts/up.sh
 ```
 
 它会依次：登录阿里云 → 拉 Isaac 底包 → 拉 xvla 镜像 → 本机编译薄层 `qiling-isaac:5.1.0`。做完即可，不必再单独 `docker login`。
@@ -95,7 +107,7 @@ chmod -R a+rwX "$HOME/X-VLA"
 **就执行这一条：**
 
 ```bash
-./docker/docker_sim/fetch_modelscope.sh
+./docker/docker_sim/scripts/fetch_modelscope.sh
 ```
 
 它只拉上面两棵子树（合计约 3.6GB），写到 `rollout.sh` 会自动找到的位置，并补上 `checkpoints/last` → `200000`：
@@ -107,14 +119,14 @@ chmod -R a+rwX "$HOME/X-VLA"
 
 默认 **不拉** `training_state`（优化器状态 ~3.5GB）。
 
-下完后接着执行 `./docker/docker_sim/rollout.sh --seed 40`（见第 4 节）。第一次 rollout 会从 hf-mirror 拉 `facebook/bart-large`（tokenizer，进 `~/X-VLA/.cache/huggingface`，不是镜像里）。
+下完后接着执行 `./docker/docker_sim/scripts/rollout.sh --seed 40`（见第 4 节）。第一次 rollout 会从 hf-mirror 拉 `facebook/bart-large`（tokenizer，进 `~/X-VLA/.cache/huggingface`，不是镜像里）。
 
 **不要当步骤执行（只有这些情况才用）：**
 
 | 命令 | 什么时候用 |
 |---|---|
-| `./docker/docker_sim/fetch_modelscope.sh --dry-run` | 只想看会下哪些文件、不下 |
-| `./docker/docker_sim/fetch_modelscope.sh --with-optimizer` | 要接着这份 200k 任务继续训练，才需要优化器状态 |
+| `./docker/docker_sim/scripts/fetch_modelscope.sh --dry-run` | 只想看会下哪些文件、不下 |
+| `./docker/docker_sim/scripts/fetch_modelscope.sh --with-optimizer` | 要接着这份 200k 任务继续训练，才需要优化器状态 |
 | 自己用 `modelscope download --include ...` | 不想用本脚本、已会魔搭 CLI 时的等价做法；**不要和 `fetch_modelscope.sh` 重复下两遍** |
 
 ---
@@ -128,7 +140,7 @@ chmod -R a+rwX "$HOME/X-VLA"
 **就执行这一条：**
 
 ```bash
-./docker/docker_sim/record.sh --count 3
+./docker/docker_sim/scripts/record.sh --count 3
 ```
 
 一次做完：生成采集计划 + 仿真 Auto-IK 录制 + 校验。默认无 GUI。
@@ -159,7 +171,7 @@ chmod -R a+rwX "$HOME/X-VLA"
 **就执行这一条：**
 
 ```bash
-./docker/docker_sim/train.sh
+./docker/docker_sim/scripts/train.sh
 ```
 
 含义：用你录好的数据，**从头训一个 XVLA**（不是从官方 xvla-base 微调）。默认 20 万 step、batch 4。没有 LeRobot 数据集时会先从 `recorded_slender_pin_v1` 自动转换。第一次会从 hf-mirror 下载 `facebook/bart-large`。
@@ -170,9 +182,9 @@ ckpt 写在 `~/X-VLA/outputs/xvla_slender_pin_full/`。
 
 | 命令 | 含义 | 什么时候用 |
 |---|---|---|
-| `./docker/docker_sim/train.sh` | 从头训 | **默认，客户走路径 B 用这条** |
-| `./docker/docker_sim/train.sh --from-base` | 从官方 `lerobot/xvla-base` 微调，会多下一份基础权重 | 只有你明确要从公开基座接着训，才用；**不要和第一条连着跑** |
-| `./docker/docker_sim/train.sh --pretrained-path outputs/xvla_slender_pin_full/checkpoints/last/pretrained_model --resume` | 从上次同一个输出目录接着训（恢复优化器） | 只有上次 `./docker/docker_sim/train.sh` 中断了，才用 |
+| `./docker/docker_sim/scripts/train.sh` | 从头训 | **默认，客户走路径 B 用这条** |
+| `./docker/docker_sim/scripts/train.sh --from-base` | 从官方 `lerobot/xvla-base` 微调，会多下一份基础权重 | 只有你明确要从公开基座接着训，才用；**不要和第一条连着跑** |
+| `./docker/docker_sim/scripts/train.sh --pretrained-path outputs/xvla_slender_pin_full/checkpoints/last/pretrained_model --resume` | 从上次同一个输出目录接着训（恢复优化器） | 只有上次 `./docker/docker_sim/scripts/train.sh` 中断了，才用 |
 
 ---
 
@@ -181,7 +193,7 @@ ckpt 写在 `~/X-VLA/outputs/xvla_slender_pin_full/`。
 **就执行这一条：**
 
 ```bash
-./docker/docker_sim/rollout.sh --seed 40
+./docker/docker_sim/scripts/rollout.sh --seed 40
 ```
 
 默认开 Isaac GUI，用脚本自动找到的 ckpt 和数据集跑一局，`--seed 40` 与 README 演示动图同一局。视频在 `~/X-VLA/outputs/slender_pin_xvla_rollout/seed40/videos/`。
@@ -203,7 +215,7 @@ ckpt 写在 `~/X-VLA/outputs/xvla_slender_pin_full/`。
 例如无窗口、并且你刚用路径 B 训完、想指定这份 ckpt：
 
 ```bash
-./docker/docker_sim/rollout.sh --seed 40 --headless \
+./docker/docker_sim/scripts/rollout.sh --seed 40 --headless \
   --checkpoint outputs/xvla_slender_pin_full/checkpoints/last/pretrained_model \
   --dataset datasets/slender_pin_lerobot_v3_xvla_v1
 ```
@@ -214,14 +226,14 @@ ckpt 写在 `~/X-VLA/outputs/xvla_slender_pin_full/`。
 
 | 脚本 | 作用 | 要不要单独跑 |
 |---|---|---|
-| `./docker/docker_sim/up.sh` | 登录阿里云、拉镜像、编 Isaac 薄层 | 要，两条路第一步 |
-| `./docker/docker_sim/fetch_modelscope.sh` | 只下载魔搭上的 XVLA 数据集 + 200k 权重 | 只要走路径 A |
-| `./docker/docker_sim/record.sh` | 录数据 | 只要走路径 B |
-| `./docker/docker_sim/train.sh` | 正式训练 | 只要走路径 B |
-| `./docker/docker_sim/rollout.sh` | 仿真 + 录像 | 要，两条路最后一步 |
-| `./docker/docker_sim/prefetch_hf.sh` | 预下载 tokenizer | **不用单独跑**；`train.sh` / `rollout.sh` 缺 tokenizer 时会自己下 |
+| `./docker/docker_sim/scripts/up.sh` | 登录阿里云、拉镜像、编 Isaac 薄层 | 要，两条路第一步 |
+| `./docker/docker_sim/scripts/fetch_modelscope.sh` | 只下载魔搭上的 XVLA 数据集 + 200k 权重 | 只要走路径 A |
+| `./docker/docker_sim/scripts/record.sh` | 录数据 | 只要走路径 B |
+| `./docker/docker_sim/scripts/train.sh` | 正式训练 | 只要走路径 B |
+| `./docker/docker_sim/scripts/rollout.sh` | 仿真 + 录像 | 要，两条路最后一步 |
+| `./docker/docker_sim/scripts/prefetch_hf.sh` | 预下载 tokenizer | **不用单独跑**；`train.sh` / `rollout.sh` 缺 tokenizer 时会自己下 |
 
-不要当入口：`common.sh`、`entrypoint-*.sh`、`xvla_policy_python.sh`、`patch_lerobot_xvla_only.py`、`prefetch_hf.py`、`fetch_modelscope.py`。
+不要当入口：`scripts/common.sh`、`container/`、`tools/`。
 
 ---
 

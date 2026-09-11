@@ -11,7 +11,7 @@ DATASET_REL=""
 
 usage() {
   cat <<'EOF'
-Usage: ./docker/docker_sim/rollout.sh [--seed N] [--headless] [--checkpoint PATH] [--dataset PATH]
+Usage: ./docker/docker_sim/scripts/rollout.sh [--seed N] [--headless] [--checkpoint PATH] [--dataset PATH]
 
 Default opens the Isaac GUI and writes a rollout video under ~/X-VLA/outputs/.
 PATH is relative to ~/X-VLA or an absolute host path.
@@ -64,7 +64,7 @@ if [[ -z "${CHECKPOINT_REL}" ]]; then
 fi
 if [[ -z "${CHECKPOINT_REL}" ]]; then
   echo "No checkpoint found under ${QILING_ROOT}/outputs." >&2
-  echo "Run ./docker/docker_sim/fetch_modelscope.sh, or pass --checkpoint." >&2
+  echo "Run ./docker/docker_sim/scripts/fetch_modelscope.sh, or pass --checkpoint." >&2
   exit 1
 fi
 
@@ -73,7 +73,7 @@ if [[ -z "${DATASET_REL}" ]]; then
 fi
 if [[ -z "${DATASET_REL}" ]]; then
   echo "No LeRobot dataset found under ${QILING_ROOT}/datasets." >&2
-  echo "Run ./docker/docker_sim/fetch_modelscope.sh (or record + train) first." >&2
+  echo "Run ./docker/docker_sim/scripts/fetch_modelscope.sh (or record + train) first." >&2
   exit 1
 fi
 

@@ -28,7 +28,7 @@ if [[ ! -S /var/run/docker.sock ]]; then
 fi
 
 if ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
-  echo "XVLA image not found: ${IMAGE}. Run ./docker/docker_sim/up.sh first." >&2
+  echo "XVLA image not found: ${IMAGE}. Run ./docker/docker_sim/scripts/up.sh first." >&2
   exit 1
 fi
 

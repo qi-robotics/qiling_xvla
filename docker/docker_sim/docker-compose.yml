@@ -40,7 +40,7 @@ services:
       QILING_WORKSPACE: /workspace/X-VLA
       QILING_ROOT_HOST: ${QILING_ROOT:-${HOME}/X-VLA}
       QILING_XVLA_IMAGE: ${QILING_XVLA_IMAGE:-registry.cn-hangzhou.aliyuncs.com/keno/qi-xvla:lerobot050}
-      XVLA_POLICY_PYTHON: /opt/qiling_xvla/docker/docker_sim/xvla_policy_python.sh
+      XVLA_POLICY_PYTHON: /opt/qiling_xvla/docker/docker_sim/container/xvla_policy_python.sh
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
     volumes:
       - ${QILING_ROOT:-${HOME}/X-VLA}:/workspace/X-VLA

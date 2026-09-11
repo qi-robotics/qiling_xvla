@@ -6,7 +6,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 usage() {
   cat <<'EOF'
-Usage: ./docker/docker_sim/fetch_modelscope.sh [--dry-run] [--with-optimizer]
+Usage: ./docker/docker_sim/scripts/fetch_modelscope.sh [--dry-run] [--with-optimizer]
 
 Download only the XVLA dataset + 200k weights from ModelScope into ~/X-VLA.
 Does not download bottleInBowl / smolVLA in the same repo.
@@ -36,11 +36,11 @@ fi
 prepare_workspace
 
 echo "[fetch] ModelScope keno123/qi-studio_embodied_edu  (xvla/ only)"
-python3 "${DOCKER_DIR}/fetch_modelscope.py" --dest "${QILING_ROOT}" "$@"
+python3 "${SIM_DIR}/tools/fetch_modelscope.py" --dest "${QILING_ROOT}" "$@"
 chmod -R a+rwX "${QILING_ROOT}/datasets" "${QILING_ROOT}/outputs" 2>/dev/null || true
 
 if [[ " $* " != *" --dry-run "* ]]; then
   echo
-  echo "[fetch] next: ./docker/docker_sim/rollout.sh --seed 40"
-  echo "        (run ./docker/docker_sim/up.sh first if images are not ready)"
+  echo "[fetch] next: ./docker/docker_sim/scripts/rollout.sh --seed 40"
+  echo "        (run ./docker/docker_sim/scripts/up.sh first if images are not ready)"
 fi

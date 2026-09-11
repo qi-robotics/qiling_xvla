@@ -11,7 +11,7 @@ RESUME=1
 
 usage() {
   cat <<'EOF'
-Usage: ./docker/docker_sim/record.sh [--count N] [--gui] [--overwrite] [--no-resume]
+Usage: ./docker/docker_sim/scripts/record.sh [--count N] [--gui] [--overwrite] [--no-resume]
 
 Default is headless. Writes to:
   ~/X-VLA/datasets/raw_slender_pin_v1

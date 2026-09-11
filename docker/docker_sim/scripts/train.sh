@@ -18,7 +18,7 @@ RENAME_MAP='{"observation.images.chest":"observation.images.image","observation.
 
 usage() {
   cat <<'EOF'
-Usage: ./docker/docker_sim/train.sh [options]
+Usage: ./docker/docker_sim/scripts/train.sh [options]
 
 Full XVLA training (default 200000 steps, batch 4). Writes under ~/X-VLA/outputs/.
 
