@@ -8,4 +8,4 @@ require_docker
 prepare_workspace
 
 echo "[hf] cache ${QILING_ROOT}/.cache/huggingface  endpoint=${HF_ENDPOINT}"
-run_xvla python docker/prefetch_hf.py "$@"
+run_prefetch_hf "$@"

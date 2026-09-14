@@ -17,9 +17,12 @@ QILING_XVLA_LOCAL="${QILING_XVLA_LOCAL:-qiling-xvla:${QILING_XVLA_TAG}}"
 QILING_XVLA_IMAGE="${QILING_XVLA_IMAGE:-${QILING_ACR_HOST}/keno/qi-xvla:${QILING_XVLA_TAG}}"
 HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 PIP_INDEX_URL="${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
+DOCKER_CLI_MIRROR="${DOCKER_CLI_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/docker-ce}"
+DOCKER_CLI_VERSION="${DOCKER_CLI_VERSION:-27.5.1}"
 
 export QILING_ROOT QILING_XVLA_TAG QILING_ACR_HOST QILING_ACR_USER QILING_ACR_PASSWORD
 export QILING_XVLA_LOCAL QILING_XVLA_IMAGE HF_ENDPOINT PIP_INDEX_URL
+export DOCKER_CLI_MIRROR DOCKER_CLI_VERSION
 
 if [[ -S /var/run/docker.sock ]]; then
   DOCKER_GID="$(stat -c '%g' /var/run/docker.sock)"
@@ -183,14 +186,33 @@ run_xvla() {
   qiling_compose run --rm --no-deps -T xvla "$@"
 }
 
+# Use the host prefetch script, not the copy baked into the ACR xvla image.
+run_prefetch_hf() {
+  qiling_compose run --rm --no-deps -T \
+    -v "${SIM_DIR}/tools/prefetch_hf.py:/tmp/prefetch_hf.py:ro" \
+    xvla python /tmp/prefetch_hf.py "$@"
+}
+
+bart_tokenizer_ready() {
+  # `[[ -f dir/*/file ]]` does NOT glob in bash; expand the snapshot dir first.
+  local dir
+  for dir in "${QILING_ROOT}/.cache/huggingface/hub/models--facebook--bart-large/snapshots"/*; do
+    [[ -d "${dir}" ]] || continue
+    if [[ -e "${dir}/vocab.json" && -e "${dir}/merges.txt" && -e "${dir}/tokenizer.json" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 ensure_bart_tokenizer() {
-  local marker="${QILING_ROOT}/.cache/huggingface/hub/models--facebook--bart-large"
-  if [[ -d "${marker}" ]]; then
+  if bart_tokenizer_ready; then
+    echo "[hf] facebook/bart-large tokenizer already in ${QILING_ROOT}/.cache/huggingface"
     return 0
   fi
-  echo "[hf] facebook/bart-large is not in ${QILING_ROOT}/.cache/huggingface"
-  echo "[hf] downloading facebook/bart-large via ${HF_ENDPOINT}"
-  run_xvla python docker/prefetch_hf.py
+  echo "[hf] facebook/bart-large tokenizer is not in ${QILING_ROOT}/.cache/huggingface"
+  echo "[hf] downloading tokenizer files only (~2MB) via ${HF_ENDPOINT}"
+  run_prefetch_hf
 }
 
 # Prints a dataset path relative to QILING_ROOT. Converts recorded episodes if needed.

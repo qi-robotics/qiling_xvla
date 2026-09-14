@@ -110,7 +110,7 @@ fi
 ensure_bart_tokenizer
 if [[ "${FROM_BASE}" -eq 1 ]]; then
   echo "[train] fetching lerobot/xvla-base into the workspace cache"
-  run_xvla python docker/prefetch_hf.py --with-base
+  run_prefetch_hf --with-base
 fi
 
 train_args=(

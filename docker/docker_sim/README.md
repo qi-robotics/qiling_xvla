@@ -64,9 +64,16 @@ docker/docker_sim/
 
 - Hugging Face → `https://hf-mirror.com`
 - PyPI（编 Isaac 薄层）→ `https://pypi.tuna.tsinghua.edu.cn/simple`
+- Docker 静态 CLI（Isaac 薄层里用来 `docker run` xvla，**不是** NGC Isaac）→ 清华 `mirrors.tuna.tsinghua.edu.cn/docker-ce`
 - 路径 A 的数据 / ckpt → 魔搭 `modelscope.cn`
 
 Isaac 官方底包只能从 NVIDIA NGC `nvcr.io` 拉（许可证不允许转到阿里云）。这一步若很慢，给 **Docker 守护进程** 配代理；与 Hugging Face 无关。
+
+编 overlay 时若 Docker CLI 下载仍失败，可改镜像后再 `./docker/docker_sim/scripts/up.sh`：
+
+```bash
+export DOCKER_CLI_MIRROR=https://mirrors.aliyun.com/docker-ce
+```
 
 启动 Isaac 即视为接受 NVIDIA Omniverse EULA。
 
@@ -119,7 +126,7 @@ chmod -R a+rwX "$HOME/X-VLA"
 
 默认 **不拉** `training_state`（优化器状态 ~3.5GB）。
 
-下完后接着执行 `./docker/docker_sim/scripts/rollout.sh --seed 40`（见第 4 节）。第一次 rollout 会从 hf-mirror 拉 `facebook/bart-large`（tokenizer，进 `~/X-VLA/.cache/huggingface`，不是镜像里）。
+下完后接着执行 `./docker/docker_sim/scripts/rollout.sh --seed 40`（见第 4 节）。第一次 rollout 会从 hf-mirror 拉 `facebook/bart-large` 的 **tokenizer 文件（约 2MB）**，进 `~/X-VLA/.cache/huggingface`，不是镜像里，也不会下 BART 那几 GB 权重。
 
 **不要当步骤执行（只有这些情况才用）：**
 
@@ -174,7 +181,7 @@ chmod -R a+rwX "$HOME/X-VLA"
 ./docker/docker_sim/scripts/train.sh
 ```
 
-含义：用你录好的数据，**从头训一个 XVLA**（不是从官方 xvla-base 微调）。默认 20 万 step、batch 4。没有 LeRobot 数据集时会先从 `recorded_slender_pin_v1` 自动转换。第一次会从 hf-mirror 下载 `facebook/bart-large`。
+含义：用你录好的数据，**从头训一个 XVLA**（不是从官方 xvla-base 微调）。默认 20 万 step、batch 4。没有 LeRobot 数据集时会先从 `recorded_slender_pin_v1` 自动转换。第一次会从 hf-mirror 下载 `facebook/bart-large` tokenizer（约 2MB）。
 
 ckpt 写在 `~/X-VLA/outputs/xvla_slender_pin_full/`。
 

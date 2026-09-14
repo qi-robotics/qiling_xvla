@@ -23,7 +23,7 @@ else
   docker pull "${QILING_XVLA_IMAGE}"
 fi
 
-echo "[up] building Isaac overlay qiling-isaac:5.1.0 (PyPI ${PIP_INDEX_URL})"
+echo "[up] building Isaac overlay qiling-isaac:5.1.0 (PyPI ${PIP_INDEX_URL}, Docker CLI ${DOCKER_CLI_MIRROR})"
 qiling_compose build isaac
 
 echo

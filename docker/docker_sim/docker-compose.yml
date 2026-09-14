@@ -23,6 +23,8 @@ services:
       network: host
       args:
         PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        DOCKER_CLI_MIRROR: ${DOCKER_CLI_MIRROR:-https://mirrors.tuna.tsinghua.edu.cn/docker-ce}
+        DOCKER_CLI_VERSION: ${DOCKER_CLI_VERSION:-27.5.1}
     image: qiling-isaac:5.1.0
     user: "1234:1234"
     group_add:
@@ -66,6 +68,8 @@ services:
       TRANSFORMERS_CACHE: /workspace/X-VLA/.cache/huggingface/transformers
       HF_DATASETS_CACHE: /tmp/huggingface-datasets
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      HF_HUB_DISABLE_XET: "1"
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
       WANDB_MODE: disabled
       WANDB_DISABLED: "true"
       NVIDIA_DRIVER_CAPABILITIES: compute,utility

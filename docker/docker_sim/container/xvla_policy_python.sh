@@ -47,6 +47,7 @@ exec docker run --rm -i \
   -e TRANSFORMERS_CACHE=/workspace/X-VLA/.cache/huggingface/transformers \
   -e HF_DATASETS_CACHE=/tmp/hf-datasets \
   -e HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}" \
+  -e HF_HUB_DISABLE_XET=1 \
   -e HF_HUB_OFFLINE=1 \
   -e TRANSFORMERS_OFFLINE=1 \
   -e PYTHONUNBUFFERED=1 \
